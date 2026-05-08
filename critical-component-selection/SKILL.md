@@ -1,7 +1,7 @@
 ---
 name: critical-component-selection
 description: >-
-  Use this skill when the user is making a freeze-grade component selection decision for hardware where the choice will be locked into schematic/BOM/pin assignment and at least two critical conditions apply: multi-year lifecycle/EOL/PCN/lead-time risk, toolchain verification such as EMIF/fitter/SI/PI/thermal, pinout/power/SI/thermal architecture impact, or vendor evidence that must be reconciled against requirements. Triggers include: 关键物料选型, BOM 冻结前评审, EOL/PCN 替代, 候选料号决策, vendor 反馈与需求基线对账. Do NOT use for casual comparisons, learning questions, architecture sketches, or selections that do not require evidence reconciliation and freeze conditions.
+  Use this skill when the user is making a freeze-grade component selection decision for hardware where the choice will be locked into schematic/BOM/pin assignment and at least two critical conditions apply: multi-year lifecycle/EOL/PCN/lead-time risk, toolchain verification such as EMIF/fitter/SI/PI/thermal, pinout/power/SI/thermal architecture impact, or vendor evidence that must be reconciled against requirements. Triggers include: 关键物料选型, BOM 冻结前评审, EOL/PCN 替代, 候选料号决策, 选型证据地图, selection map, vendor 反馈与需求基线对账. Do NOT use for casual comparisons, learning questions, architecture sketches, or selections that do not require evidence reconciliation and freeze conditions.
 ---
 
 # Critical Component Selection
@@ -50,6 +50,21 @@ Mark unknown or unsupported fields exactly as `TBD-evidence`. Mark contradiction
 7. Engineering verification gate: state this decision's required validation, owner, pass criteria, and output artifact; do not assume device-category-specific gates.
 8. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
 
+## Selection Map Sidecar
+
+Create a project-layer Selection Map when the selection has many datasheets, PCNs, overview files, supplier messages, or more candidate routes than can usefully fit in the decision record.
+
+The map is not a catalog of every part number. It exists to help the next selection step by preserving:
+
+1. Source navigation: where evidence lives and what conclusion it supports.
+2. Candidate funnel: `Primary`, `Backup`, `Watchlist`, `Rejected`, and `Closed` routes at the useful family or route level.
+3. Requirement coverage: which hard constraints are confirmed, conflicted, or still `TBD-evidence`.
+4. Rejection rationale: why a route was excluded and what evidence would reopen it.
+5. Evidence acquisition plan: who should ask the original vendor, distributor, FAE, procurement, internal owner, or tool/lab path for missing evidence.
+6. Tool validation map: what engineering validation must produce before freeze.
+
+Treat "ask the vendor/distributor/procurement" as an evidence-acquisition reminder only. Do not present a question as answered until a dated source with sender, channel, exact subject, and answer is available and cited in the evidence matrix.
+
 Use hardware freeze semantics:
 
 1. `draft`: still shaping requirements or candidates.
@@ -66,6 +81,8 @@ If any hard constraint lacks evidence, the strongest allowed status is `selected
 Default to phase-trimmed output. Include only the sections needed for the current entry phase, plus `Evidence Gaps`, `Recommendation`, and `Next Actions` when applicable.
 
 Use the full formal schema only when the user asks to create a decision record, run a freeze review, or save a project artifact.
+
+Use a Selection Map sidecar when the user asks for a map, when the evidence set is too large for the decision record, or when future agents need a navigation artifact to continue the selection.
 
 Full formal schema:
 
@@ -102,6 +119,7 @@ Load only the template needed for the active phase:
 3. `references/risk-register-template.md` for structured risk capture.
 4. `references/decision-record-template.md` for the final selection record.
 5. `references/freeze-checklist-template.md` for pre-freeze gate review.
+6. `references/selection-map-template.md` for large evidence sets, candidate funnels, rejection ledgers, evidence acquisition reminders, and tool-validation navigation.
 
 ## Anti-Patterns
 
