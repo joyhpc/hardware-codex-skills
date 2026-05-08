@@ -8,6 +8,19 @@ This repository stores reusable, method-level skills. It should not store projec
 
 - `critical-component-selection`: freeze-grade hardware component selection workflow for schematic, BOM, pin assignment, layout, lifecycle, vendor-evidence, and engineering-verification decisions.
 
+## Layout Convention
+
+Each top-level directory is one Codex skill:
+
+```text
+hardware-codex-skills/
+├── README.md
+└── critical-component-selection/
+    ├── SKILL.md
+    ├── agents/
+    └── references/
+```
+
 ## Install Locally
 
 Expose a skill to Codex by symlinking it into the runtime skills directory:

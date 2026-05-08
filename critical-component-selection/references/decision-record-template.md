@@ -11,7 +11,7 @@ Use this for the project-layer decision artifact. Do not save real project facts
 | Decision date |  |
 | Decision owner |  |
 | Review date |  |
-| Record status | draft / approved / superseded |
+| Record status | draft / shortlisted / selected-not-frozen / frozen / blocked / superseded |
 
 ## Decision Objective
 
@@ -36,7 +36,7 @@ Link the requirement file, message, or project record. Split requirements into:
 
 ## Evidence Summary
 
-Link the evidence matrix and list only decision-changing facts.
+Link the source inventory and evidence matrix. List only decision-changing facts.
 
 ## Risk Summary
 
@@ -51,6 +51,12 @@ Link the risk register and list unresolved high-impact risks.
 ## Decision
 
 State what is selected now, what is not selected, and what remains blocked before freeze.
+
+Allowed decision strengths:
+
+- `selected-not-frozen`: primary candidate can proceed to procurement and engineering validation, but at least one freeze gate is open.
+- `frozen`: schematic/BOM/pin/layout freeze is allowed because all non-N-A freeze gates passed.
+- `blocked`: no candidate can proceed without named missing evidence or an architecture change.
 
 ## Signoff
 

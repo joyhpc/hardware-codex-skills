@@ -24,3 +24,9 @@ Freeze recommendation:
 - `pass`: all non-N-A gates are pass.
 - `blocked`: any hard gate is blocked or `TBD-evidence`.
 - `conditional`: only acceptable when the project owner explicitly accepts named residual risks with review dates.
+
+Decision-state rule:
+
+- `selected-not-frozen`: primary candidate exists, but one or more gates remain `blocked` or `TBD-evidence`.
+- `frozen`: every non-N-A gate is `pass`.
+- Never mark a component `frozen` when lifecycle, commercial terms, or required engineering validation is still `TBD-evidence`.

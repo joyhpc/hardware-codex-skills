@@ -42,31 +42,46 @@ Mark unknown or unsupported fields exactly as `TBD-evidence`. Mark contradiction
 ## Workflow Checklist
 
 1. Requirement baseline: identify hard constraints, changeable constraints, target lifetime, and acceptance criteria.
-2. Hard-gate screen: reject candidates that fail non-negotiable constraints or lack required evidence.
-3. Candidate evidence matrix: compare fields across candidates using evidence status, not confidence language.
-4. Candidate classification: assign each candidate to `Primary`, `Backup`, `Rejected`, or `Watchlist`.
-5. Risk register: record supply, EOL, package/pinout, SI/PI/thermal, firmware/logic, cost, and substitute risks with mitigation owners.
-6. Engineering verification gate: state this decision's required validation, owner, pass criteria, and output artifact; do not assume device-category-specific gates.
-7. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
+2. Source inventory: list source IDs before making component claims.
+3. Hard-gate screen: reject candidates that fail non-negotiable constraints or lack required evidence.
+4. Candidate evidence matrix: compare one field for one candidate per row using evidence status, not confidence language.
+5. Candidate classification: assign each candidate to `Primary`, `Backup`, `Rejected`, or `Watchlist`.
+6. Risk register: record supply, EOL, package/pinout, SI/PI/thermal, firmware/logic, cost, and substitute risks with mitigation owners.
+7. Engineering verification gate: state this decision's required validation, owner, pass criteria, and output artifact; do not assume device-category-specific gates.
+8. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
 
-## Output Schema
+Use hardware freeze semantics:
 
-Use these section names unless the user requests a different format:
+1. `draft`: still shaping requirements or candidates.
+2. `shortlisted`: candidates are identified but no primary decision exists.
+3. `selected-not-frozen`: primary candidate chosen for engineering/procurement work, but freeze blockers remain.
+4. `frozen`: approved for schematic/BOM/pin/layout freeze with all non-N-A gates passed.
+5. `blocked`: cannot proceed without named evidence or architecture change.
+6. `superseded`: replaced by a later decision record.
+
+If any hard constraint lacks evidence, the strongest allowed status is `selected-not-frozen`, never `frozen`.
+
+## Output Behavior
+
+Default to phase-trimmed output. Include only the sections needed for the current entry phase, plus `Evidence Gaps`, `Recommendation`, and `Next Actions` when applicable.
+
+Use the full formal schema only when the user asks to create a decision record, run a freeze review, or save a project artifact.
+
+Full formal schema:
 
 1. `Decision Objective`
 2. `Entry Phase`
-3. `Requirement Baseline`
-4. `Candidate Classification`
-5. `Evidence Matrix`
-6. `Evidence Gaps`
-7. `Risk Register`
-8. `Engineering Verification Gates`
-9. `Recommendation`
-10. `Freeze Checklist`
-11. `Record Location`
-12. `Next Actions`
-
-For phase-trimmed responses, include only the relevant sections plus `Evidence Gaps`, `Recommendation`, and `Next Actions` when applicable.
+3. `Source Inventory`
+4. `Requirement Baseline`
+5. `Candidate Classification`
+6. `Evidence Matrix`
+7. `Evidence Gaps`
+8. `Risk Register`
+9. `Engineering Verification Gates`
+10. `Recommendation`
+11. `Freeze Checklist`
+12. `Record Location`
+13. `Next Actions`
 
 ## Workspace Interface
 
@@ -82,10 +97,11 @@ When working inside an existing workspace:
 
 Load only the template needed for the active phase:
 
-1. `references/evidence-matrix-template.md` for candidate evidence comparison.
-2. `references/risk-register-template.md` for structured risk capture.
-3. `references/decision-record-template.md` for the final selection record.
-4. `references/freeze-checklist-template.md` for pre-freeze gate review.
+1. `references/source-inventory-template.md` for source IDs and source trust boundaries.
+2. `references/evidence-matrix-template.md` for candidate evidence comparison.
+3. `references/risk-register-template.md` for structured risk capture.
+4. `references/decision-record-template.md` for the final selection record.
+5. `references/freeze-checklist-template.md` for pre-freeze gate review.
 
 ## Anti-Patterns
 
