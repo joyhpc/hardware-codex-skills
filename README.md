@@ -31,6 +31,7 @@ Typical triggers:
 - candidate part-number decision
 - supplier feedback versus requirement baseline
 - selection evidence map / `选型证据地图`
+- communication report / `选型报告` / `沟通报告`
 
 Do not use it for casual comparisons, learning questions, or low-risk part recommendations.
 
@@ -46,6 +47,7 @@ Common outputs:
 - **Risk Register**: supply, lifecycle, package, SI/PI/thermal, logic/toolchain, cost, and substitute risks with owners.
 - **Freeze Checklist**: boolean pre-freeze gate review.
 - **Selection Map**: a sidecar map for large investigations with source navigation, candidate funnel, rejection ledger, evidence acquisition plan, and tool-validation map.
+- **Communication Report**: audience-specific report for leadership, procurement, supplier/FAE inquiry, or project meetings.
 
 The most important rule: if lifecycle, price, lead time, MOQ, temperature grade, PCN/EOL state, stock, or validation status is not backed by a dated source, it must stay `TBD-evidence`.
 
@@ -69,6 +71,12 @@ or:
 
 ```text
 这个是关键物料选型。请按 freeze-grade component selection 做候选分类、证据缺口、风险登记和冻结条件。
+```
+
+To create a communication report:
+
+```text
+基于当前选型记录，生成一份给采购推进供应商确认的沟通报告。
 ```
 
 ## Quick Start For AI Agents
@@ -102,6 +110,7 @@ hardware-codex-skills/
     │   └── openai.yaml
     └── references/
         ├── decision-record-template.md
+        ├── communication-report-template.md
         ├── evidence-matrix-template.md
         ├── freeze-checklist-template.md
         ├── risk-register-template.md

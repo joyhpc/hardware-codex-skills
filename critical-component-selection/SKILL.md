@@ -1,7 +1,7 @@
 ---
 name: critical-component-selection
 description: >-
-  Use this skill when the user is making a freeze-grade component selection decision for hardware where the choice will be locked into schematic/BOM/pin assignment and at least two critical conditions apply: multi-year lifecycle/EOL/PCN/lead-time risk, toolchain verification such as EMIF/fitter/SI/PI/thermal, pinout/power/SI/thermal architecture impact, or vendor evidence that must be reconciled against requirements. Triggers include: 关键物料选型, BOM 冻结前评审, EOL/PCN 替代, 候选料号决策, 选型证据地图, selection map, vendor 反馈与需求基线对账. Do NOT use for casual comparisons, learning questions, architecture sketches, or selections that do not require evidence reconciliation and freeze conditions.
+  Use this skill when the user is making a freeze-grade component selection decision for hardware where the choice will be locked into schematic/BOM/pin assignment and at least two critical conditions apply: multi-year lifecycle/EOL/PCN/lead-time risk, toolchain verification such as EMIF/fitter/SI/PI/thermal, pinout/power/SI/thermal architecture impact, or vendor evidence that must be reconciled against requirements. Triggers include: 关键物料选型, BOM 冻结前评审, EOL/PCN 替代, 候选料号决策, 选型证据地图, selection map, 选型报告, 沟通报告, procurement brief, supplier inquiry, leadership brief, vendor 反馈与需求基线对账. Do NOT use for casual comparisons, learning questions, architecture sketches, or selections that do not require evidence reconciliation and freeze conditions.
 ---
 
 # Critical Component Selection
@@ -65,6 +65,21 @@ The map is not a catalog of every part number. It exists to help the next select
 
 Treat "ask the vendor/distributor/procurement" as an evidence-acquisition reminder only. Do not present a question as answered until a dated source with sender, channel, exact subject, and answer is available and cited in the evidence matrix.
 
+## Communication Reports
+
+Create a report when the user needs to communicate the selection state to leadership, procurement, suppliers, FAEs, or a project meeting.
+
+Reports are derived artifacts. They must point back to the decision record, selection map, or evidence matrix and must not introduce new facts. Always keep the current decision strength visible, such as `selected-not-frozen`, `frozen`, or `blocked`.
+
+Choose the report audience before writing:
+
+1. Leadership brief: emphasize decision ask, business impact, top options, top blockers, and deadline.
+2. Procurement brief: emphasize exact evidence gaps, supplier questions, required answer format, owners, and dates.
+3. Supplier / FAE inquiry: ask only the external-safe questions needed to close evidence gaps; avoid internal rankings, cost targets, competitor details, and unapproved architecture disclosure.
+4. Project meeting brief: emphasize current status, decisions needed, blockers, owners, and next review.
+
+Do not paste the full evidence matrix into a report unless explicitly requested. Use the smallest evidence summary that supports the communication goal.
+
 Use hardware freeze semantics:
 
 1. `draft`: still shaping requirements or candidates.
@@ -83,6 +98,8 @@ Default to phase-trimmed output. Include only the sections needed for the curren
 Use the full formal schema only when the user asks to create a decision record, run a freeze review, or save a project artifact.
 
 Use a Selection Map sidecar when the user asks for a map, when the evidence set is too large for the decision record, or when future agents need a navigation artifact to continue the selection.
+
+Use a Communication Report when the user asks for a report, meeting brief, leadership update, procurement action note, supplier inquiry, or FAE question list derived from the selection.
 
 Full formal schema:
 
@@ -120,6 +137,7 @@ Load only the template needed for the active phase:
 4. `references/decision-record-template.md` for the final selection record.
 5. `references/freeze-checklist-template.md` for pre-freeze gate review.
 6. `references/selection-map-template.md` for large evidence sets, candidate funnels, rejection ledgers, evidence acquisition reminders, and tool-validation navigation.
+7. `references/communication-report-template.md` for leadership, procurement, supplier/FAE, and project-meeting reports derived from the selection artifacts.
 
 ## Anti-Patterns
 
