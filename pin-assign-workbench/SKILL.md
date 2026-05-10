@@ -31,21 +31,34 @@ If no sources are provided and none can be located, refuse to produce a final `P
 
 Use this skill only when the expected output is a concrete pin/net deliverable: an Excel workbook, CSV, OrCAD Capture or Allegro DE-HDL off-page connector list, schematic-symbol-order table, or audit report. Prefer explicit user invocation while this skill is still being proven. Do not use it for package selection, simple datasheet lookup, broad schematic review, SI/layout advice, FPGA IP configuration discussion, or QSF/XDC/LPF/SDC generation unless the user also asks for a pin/net mapping artifact.
 
+## Source Gap Gate
+
+Before building `Pin_Net_Output`, perform a source gap review from the user's stated target and available files. Identify which required source classes are present, missing, stale, or conflicting:
+
+- FPGA/SoC package pinout and bank/package pin numbers.
+- FPGA/IP placement, lane, byte, polarity, swap, or topology rules needed for the interface.
+- Peripheral, connector, module, or memory package pinout/ballout.
+- Schematic symbol order or CAD-exported pin list.
+- Project constraints such as voltage bank, device instance naming, net prefix, and CAD paste format.
+
+Search user-provided files and local knowledge bases first. Browse only for missing, stale, or conflicting source classes, and prefer vendor official documents. If a required source class remains missing, list it in `Required Documents`, mark affected cells `TBD-source`, and do not present the final table as complete.
+
 ## Workflow
 
 1. **Set the target.** Capture device part/package, interface topology, package option, CAD tool, schematic symbol order, desired net naming, and output format.
 2. **Gather sources.** Follow `references/source-policy.md`. Search user-provided files and local knowledge bases before web search. Use vendor official documents for final pinout/ballout/electrical claims.
-3. **Build the mapping chain.** Keep logical rules separate from package pins:
+3. **Review source gaps.** Apply the Source Gap Gate. Decide whether local evidence is sufficient or whether official documents must be found online before final mapping.
+4. **Build the mapping chain.** Keep logical rules separate from package pins:
    - logical signal or IP rule
    - internal placement index or lane
    - FPGA/SoC package pin or ball
    - peripheral package pin or ball
    - schematic net name
-4. **Align to schematic order.** Use the user's OrCAD/Allegro symbol order as the output order. Do not default to datasheet order when the user is drawing a schematic.
-5. **Classify nets.** Separate data groups, clocks/strobes, address/control, reset, local-only pins, FPGA-only pins, power/ground, NC, and RFU.
-6. **Generate Excel.** Use `references/workbook-pattern.md` for sheet structure. Use `assets/pin-assign-template.xlsx` when starting a new workbook.
-7. **Validate.** Apply `references/validation-checklist.md`. Use `scripts/format_pin_workbook.py` only for deterministic formatting/checking; do not let scripts make engineering judgments.
-8. **Explain the result.** Add a source/workflow note in the workbook and summarize assumptions, conflicts, and required FAE/Quartus/SI/layout confirmations.
+5. **Align to schematic order.** Use the user's OrCAD/Allegro symbol order as the output order. Do not default to datasheet order when the user is drawing a schematic.
+6. **Classify nets.** Separate data groups, clocks/strobes, address/control, reset, local-only pins, FPGA-only pins, power/ground, NC, and RFU.
+7. **Generate Excel.** Use `references/workbook-pattern.md` for sheet structure. Use `assets/pin-assign-template.xlsx` when starting a new workbook.
+8. **Validate.** Apply `references/validation-checklist.md`. Use `scripts/format_pin_workbook.py` only for deterministic formatting/checking; do not let scripts make engineering judgments.
+9. **Explain the result.** Add a source/workflow note in the workbook and summarize assumptions, conflicts, and required FAE/Quartus/SI/layout confirmations.
 
 ## Source Discipline
 

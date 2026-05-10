@@ -43,6 +43,20 @@
 - Prefer vendor domains and official document portals.
 - Record URL, title, revision/date, and exact section/table/figure.
 
+## Source Gap Review
+
+Before final mapping, classify each required source as `present`, `missing`, `stale`, or `conflict`.
+
+Required source classes usually include:
+
+- FPGA/SoC package pinout with exact part/package.
+- FPGA/IP interface placement rules such as lane, byte, polarity, swap, topology, and bank constraints.
+- Peripheral, connector, module, or memory pinout/ballout with exact package or ordering code.
+- CAD schematic symbol order or exported pin list.
+- Project constraints such as voltage bank, device instance naming, net prefix, and CAD paste format.
+
+If a source class is `missing`, search local project and knowledge-base files first. Browse only for missing, stale, or conflicting source classes. If the source cannot be found, add it to `Required Documents` and mark affected output cells as `TBD-source`.
+
 ## Conflict Handling
 
 - If two sources disagree on pin number, package code, topology, or ballout, stop and show the conflict.
