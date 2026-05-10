@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pin Assign Workbench"
+  short_description: "Create audited pin/net workbooks."
+  default_prompt: "Create or audit a reviewable pin assignment workbook from authoritative pinouts, package ballouts, placement rules, and schematic symbol order. Preserve source IDs, assumptions, validation checks, and unresolved conflicts."

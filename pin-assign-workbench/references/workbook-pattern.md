@@ -1,0 +1,60 @@
+# Workbook Pattern
+
+Use Excel as the review surface. The workbook must let a hardware engineer trace every net back to source data.
+
+## Recommended Sheets
+
+- `Inputs`
+  - Device part/package, package option, topology, rank, CAD tool, symbol order source, net prefixes, and user constraints.
+- `Sources`
+  - Priority, source type, local path or URL, document title, revision/date, used-for field, and section/table/figure.
+- `Raw_Pinout`
+  - Vendor FPGA/SoC pinout copied or extracted without interpretation.
+- `Placement_Rules`
+  - IP or interface rules such as pin index to logical signal, lane mapping, byte mapping, and allowed swaps.
+- `Package_Ballout`
+  - Peripheral package pin name to ball number. Keep each package option separate.
+- `Schematic_Order`
+  - User/CAD symbol order. Preserve left/right/top/bottom order exactly.
+- `Pin_Net_Output`
+  - Final schematic-ready table: pin number, pin name, net name, group, note.
+- `Offpage_By_Class`
+  - Copy/paste columns grouped by signal class.
+- `Checks`
+  - Mechanical checks: duplicate pins, duplicate nets where unexpected, blank pin/net mismatches, source conflicts, unresolved assumptions.
+- `Review_Notes`
+  - Engineering notes, FAE questions, layout cautions, and local-only/FPGA-only distinctions.
+- `Change_Log`
+  - Date, change, reason, source, and reviewer.
+
+## Required Columns
+
+For final pin/net sheets include, as applicable:
+
+- `Group`
+- `Side` or `Symbol Location`
+- `Order`
+- `Source Pin Index` or `Lane`
+- `Package Pin Number / Ball`
+- `Pin Name`
+- `Net Name`
+- `Connection Class`
+- `Source`
+- `Note`
+
+## Naming
+
+- Prefer CAD-safe flat net names unless the user asks for buses.
+- Avoid brackets, slashes, spaces, and punctuation in copy/paste net names for OrCAD.
+- Use stable prefixes for multiple identical devices, such as `LP5_U0_` and `LP5_U1_`.
+- Make local-only nets explicit, such as `U0_ZQ_240R_TO_VDDQ`.
+
+## Workbook Notes
+
+Every delivered workbook should include:
+
+- The mapping workflow in plain language.
+- Assumptions and rejected alternatives.
+- What was left blank and why.
+- Which nets are shared or intentionally repeated.
+- Which cells require FAE, tool, SI, or layout confirmation.

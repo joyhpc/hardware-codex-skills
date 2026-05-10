@@ -35,7 +35,27 @@ Typical triggers:
 
 Do not use it for casual comparisons, learning questions, or low-risk part recommendations.
 
-## What It Produces
+### `pin-assign-workbench`
+
+Use this skill only for deliverable-grade pin/net assignment workflows where an agent must produce or audit a concrete Excel, CSV, OrCAD/Allegro off-page connector list, schematic-symbol-order table, or similar pin/net artifact from authoritative sources.
+
+Typical triggers:
+
+- FPGA/SoC to memory or peripheral pin assignment workbook
+- package ballout to schematic symbol mapping table
+- OrCAD/Allegro off-page connector list generation
+- schematic-order pin/net Excel or CSV output
+- pin assignment audit against vendor rules and source evidence
+
+Do not use it for simple one-off pin lookups, package selection, broad schematic review, layout/SI advice, or when no pin/net deliverable is requested.
+
+## Skill Activation Policy
+
+This repository may contain more reusable methods than should be active in a given Codex runtime. Keep new or experimental skills as repository assets first. Install a skill into `~/.codex/skills` only after repeated real tasks show that its trigger boundary is stable and valuable.
+
+Prefer explicit prompts such as `Use pin-assign-workbench...` during incubation. This avoids loading too many hardware workflows by default and reduces routing mistakes.
+
+## What `critical-component-selection` Produces
 
 The skill is designed to produce decision artifacts, not prose-only advice.
 
@@ -50,6 +70,18 @@ Common outputs:
 - **Communication Report**: audience-specific report for leadership, procurement, supplier/FAE inquiry, or project meetings.
 
 The most important rule: if lifecycle, price, lead time, MOQ, temperature grade, PCN/EOL state, stock, or validation status is not backed by a dated source, it must stay `TBD-evidence`.
+
+## What `pin-assign-workbench` Produces
+
+The skill is designed to produce reviewable CAD-facing artifacts, not memory-only pin tables.
+
+Common outputs:
+
+- **Pin/Net Workbook**: source inventory, raw pinout, placement rules, package ballout, schematic order, final pin/net output, checks, and change log.
+- **Schematic-Order Table**: rows ordered to match the actual OrCAD/Allegro symbol, not just vendor datasheet order.
+- **Off-Page Connector Lists**: grouped by byte lane, control group, local-only, FPGA-only, power/ground, NC, and RFU where applicable.
+- **Mechanical Checks**: duplicate net review, duplicate pin review, blank pin/net mismatches, and unresolved source conflicts.
+- **Handoff Notes**: assumptions, source IDs, and items requiring FAE, fitter, SI/PI, or layout confirmation.
 
 ## Quick Start For Humans
 
@@ -79,6 +111,23 @@ To create a communication report:
 基于当前选型记录，生成一份给采购推进供应商确认的沟通报告。
 ```
 
+Install `pin-assign-workbench` only after it has proven useful enough for default discovery.
+During incubation, prefer explicit prompts:
+
+```text
+Use pin-assign-workbench to create a schematic-order pin/net workbook from these FPGA pinout, memory ballout, and OrCAD symbol-order files.
+```
+
+To install it:
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+ln -sfn "$(pwd)/pin-assign-workbench" \
+  "${CODEX_HOME:-$HOME/.codex}/skills/pin-assign-workbench"
+```
+
+Until that symlink exists, it remains a repository asset rather than a default runtime skill.
+
 ## Quick Start For AI Agents
 
 When a task matches a skill:
@@ -104,18 +153,32 @@ Each top-level directory is one Codex skill:
 ```text
 hardware-codex-skills/
 ├── README.md
-└── critical-component-selection/
+├── critical-component-selection/
+│   ├── SKILL.md
+│   ├── agents/
+│   │   └── openai.yaml
+│   └── references/
+│       ├── decision-record-template.md
+│       ├── communication-report-template.md
+│       ├── evidence-matrix-template.md
+│       ├── freeze-checklist-template.md
+│       ├── risk-register-template.md
+│       ├── selection-map-template.md
+│       └── source-inventory-template.md
+└── pin-assign-workbench/
     ├── SKILL.md
     ├── agents/
     │   └── openai.yaml
-    └── references/
-        ├── decision-record-template.md
-        ├── communication-report-template.md
-        ├── evidence-matrix-template.md
-        ├── freeze-checklist-template.md
-        ├── risk-register-template.md
-        ├── selection-map-template.md
-        └── source-inventory-template.md
+    ├── assets/
+    │   └── pin-assign-template.xlsx
+    ├── references/
+    │   ├── memory-interface-notes.md
+    │   ├── schematic-output-patterns.md
+    │   ├── source-policy.md
+    │   ├── validation-checklist.md
+    │   └── workbook-pattern.md
+    └── scripts/
+        └── format_pin_workbook.py
 ```
 
 ## Repository Boundaries
