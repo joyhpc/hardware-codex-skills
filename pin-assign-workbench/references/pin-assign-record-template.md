@@ -1,0 +1,100 @@
+# Pin-Assign Workbook Sidecar Template (v2 / schema_version 1, schema_kind: pin-assign-workbench)
+
+Markdown sidecar carrying envelope metadata, source traceability, and handoff notes for the actual `.xlsx` workbook produced by `pin-assign-workbench`. The workbook itself is the deliverable; this file is what the schema layer validates and the meta-agent reads.
+
+See `../../SCHEMA.md` for envelope reference.
+
+---
+
+```yaml
+---
+schema_version: 1
+schema_kind: pin-assign-workbench
+record_id: <YYYYMMDD>-<project>-<scope>-pinout
+project: <project-id>
+revision: 1
+
+status: draft
+# enum: draft | source-locked | mechanical-checked | reviewed | exported
+created_date: <YYYY-MM-DD>
+review_date:
+maintainer:
+
+supersedes: null
+superseded_by: null
+
+related_records: []
+# Example:
+#   - kind: decision-record
+#     id: <decision_record_id>
+#     role: source
+
+workbook_path: ./<workbook>.xlsx
+schematic_target: orcad             # orcad | cadence-cis | allegro-de-hdl
+mechanical_check_status: TBD-evidence  # pass | blocked | TBD-evidence | N-A
+
+source_records: []
+# Same shape as related_records, listing the decision-records this workbook implements.
+
+unresolved_source_conflicts: []
+# Free-form list; must be empty for status: exported.
+
+last_lint_pass: null
+---
+```
+
+# <Scope> Pin Assignment Workbook
+
+## Scope
+
+State the package-pair scope (e.g., FPGA package XYZ ↔ LPDDR5 200-FBGA), the project revision, and the channel(s) covered.
+
+## Source Inventory
+
+| Source ID | Type | Title | Date | Path | Trust level |
+|---|---|---|---|---|---|
+| S1 | decision-record |  |  |  | primary |
+| S2 | datasheet |  |  |  | primary |
+
+## Workbook Structure
+
+The `.xlsx` at `workbook_path` is expected to contain (at minimum):
+
+1. `Source_Inventory`
+2. `Raw_Pinout` / `Raw_Ballout`
+3. `Placement_Rules`
+4. `Schematic_Order`
+5. `Final_Pin_Net`
+6. `Mechanical_Checks`
+7. `Change_Log`
+
+Refer to `../references/workbook-pattern.md` for the canonical sheet layout.
+
+## Mechanical Checks
+
+| Check | Status |
+|---|---|
+| Duplicate nets | TBD-evidence |
+| Duplicate pins | TBD-evidence |
+| Blank pin/net mismatches | TBD-evidence |
+| Unresolved source conflicts | TBD-evidence |
+
+When all checks reach `pass`, advance frontmatter `mechanical_check_status: pass` and `status: mechanical-checked`. Lint rule **PA002** enforces this consistency.
+
+## Handoff Notes
+
+Document any vendor- or topology-specific decisions that the next reviewer (FAE, SI engineer, layout engineer) needs to verify. Keep it short; do not duplicate datasheet content.
+
+## Outstanding Questions
+
+List items requiring FAE, fitter, SI/PI, or layout confirmation. Each item should have an owner and a path to closure.
+
+---
+
+**Lint before commit:**
+
+```bash
+python tools/scripts/lint_record.py path/to/this/record.md --check-paths --stamp
+```
+
+`--check-paths` verifies that `workbook_path` resolves on disk.

@@ -1,73 +1,93 @@
-# Selection Map Template
+# Selection Map Template (v2 / schema_version 1, schema_kind: selection-map)
 
-Use this as a project-layer navigation artifact when a selection involves many source files, candidate routes, supplier messages, or validation paths. The map supports the decision record; it is not a replacement for the evidence matrix, risk register, or freeze checklist.
+Schema-aware version of `selection-map-template.md`. Use this as a sidecar artifact when a decision involves many sources, candidate routes, or supplier threads.
 
-Do not list every discovered part number by default. Group low-value variants into candidate routes or families, and include exact part numbers only when they affect the decision, need supplier follow-up, or define a validation input.
+See `../../SCHEMA.md` for envelope reference.
 
-## Metadata
+---
 
-| Field | Value |
-|---|---|
-| Project |  |
-| Component / function |  |
-| Map date |  |
-| Related decision record |  |
-| Map owner |  |
-| Review date |  |
+```yaml
+---
+schema_version: 1
+schema_kind: selection-map
+record_id: <YYYYMMDD>-<project>-<component>-selection-map
+project: <project-id>
+revision: 1
+
+status: active
+created_date: <YYYY-MM-DD>
+review_date:
+maintainer:
+
+supersedes: null
+superseded_by: null
+
+related_records:
+  - kind: decision-record
+    id: <decision_record_id>
+    role: sidecar
+
+decision_record: <decision_record_id>
+candidate_routes_count: 0
+open_evidence_count: 0
+tool_validation_open_count: 0
+
+last_lint_pass: null
+---
+```
+
+# <Component> Selection Map
 
 ## Map Purpose
 
-State how this map helps the next selection step. Keep it tied to evidence navigation, candidate filtering, missing evidence, and freeze blockers.
+State how this map helps the next selection step. Tie it to evidence navigation, candidate filtering, missing evidence, and freeze blockers.
 
 ## Source Map
 
-| Source ID | Source type | Title / description | Date | Path / URL / owner | Trust level | Candidate route | Supports which conclusion | Status |
+| Source ID | Source type | Title | Date | Path / URL | Trust level | Candidate route | Supports | Status |
 |---|---|---|---|---|---|---|---|---|
-| S1 | datasheet / PCN / email / tool / project / secondary |  |  |  | primary / supplier / project / secondary |  |  | active / superseded / rejected / stale |
+| S1 |  |  |  |  | primary |  |  | active |
+
+> `Status` here uses `active`, `superseded`, `rejected`, or `stale`. (selection-map-row status, not the envelope status.)
 
 ## Candidate Funnel
 
-| Funnel class | Route / family / exact candidate | Representative exact PN if needed | Why this level is enough | Evidence pointer | Next action |
+| Funnel class | Route / family | Representative PN | Why this level | Evidence pointer | Next action |
 |---|---|---|---|---|---|
 | Primary |  |  |  |  |  |
 | Backup |  |  |  |  |  |
 | Watchlist |  |  |  |  |  |
 | Rejected |  |  |  |  |  |
-| Closed |  |  |  |  |  |
 
 ## Requirement Coverage Map
 
-Allowed status values: `confirmed`, `TBD-evidence`, `conflict`, `N-A`.
-
-| Requirement / gate | Primary route status | Backup / watchlist status | Evidence pointer | Status | Freeze impact |
+| Requirement / gate | Primary route | Backup route | Evidence pointer | Status | Freeze impact |
 |---|---|---|---|---|---|
 |  |  |  |  | TBD-evidence |  |
 
 ## Rejection Ledger
 
-| Route / candidate | Rejection reason | Evidence pointer | Reopen condition | Owner |
+| Route | Rejection reason | Evidence pointer | Reopen condition | Owner |
 |---|---|---|---|---|
 |  |  |  |  |  |
 
 ## Open Evidence Ledger
 
-| Evidence gap | Affects gate | Current best route | Needed evidence format | Owner | Due / review date | Status |
+| Evidence gap | Affects gate | Best route | Format needed | Owner | Due | Status |
 |---|---|---|---|---|---|---|
-|  |  |  | datasheet table / PCN / vendor email / quote / tool report / project signoff |  |  | TBD-evidence |
+|  |  |  | datasheet table / PCN / vendor email / quote / tool report |  |  | TBD-evidence |
 
 ## Evidence Acquisition Plan
 
-Use this only as a reminder for how to obtain evidence. Questions are not evidence until answered by a dated source with sender, channel, exact subject, and answer.
-
-Allowed status values: `to-ask`, `asked`, `answered`, `stale`, `blocked`, `N-A`.
-
-| Evidence gap | Best channel | Who asks | Question to ask | Required answer format | Status |
+| Evidence gap | Best channel | Who asks | Question | Required answer format | Status |
 |---|---|---|---|---|---|
-|  | original vendor / authorized distributor / FAE / procurement / internal owner / tool-lab |  |  | dated email / official URL / datasheet table / PCN / quote / tool artifact / signoff | to-ask |
+|  |  |  |  |  | to-ask |
+
+> Acquisition status uses `to-ask`, `asked`, `answered`, `stale`, `blocked`, or `N-A`.
 
 ## Tool Validation Map
 
-| Validation item | Inputs | Tool / method | Owner | Pass criteria | Output artifact | Status |
+| Validation | Inputs | Tool / method | Owner | Pass criteria | Output artifact | Status |
 |---|---|---|---|---|---|---|
 |  |  |  |  |  |  | TBD-evidence |
 
@@ -76,4 +96,3 @@ Allowed status values: `to-ask`, `asked`, `answered`, `stale`, `blocked`, `N-A`.
 - Promote a route only when the evidence matrix can cite the required source.
 - Demote or reject a route when new evidence conflicts with a hard constraint.
 - Mark a source `stale` when its date, PCN state, pricing, lead time, stock, or tool version may no longer support the decision.
-- Keep raw supplier emails, datasheets, PCNs, and tool artifacts outside the skill and inside the project evidence store.

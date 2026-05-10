@@ -58,7 +58,8 @@ Search user-provided files and local knowledge bases first. Browse only for miss
 6. **Classify nets.** Separate data groups, clocks/strobes, address/control, reset, local-only pins, FPGA-only pins, power/ground, NC, and RFU.
 7. **Generate Excel.** Use `references/workbook-pattern.md` for sheet structure. Use `assets/pin-assign-template.xlsx` when starting a new workbook.
 8. **Validate.** Apply `references/validation-checklist.md`. Use `scripts/format_pin_workbook.py` only for deterministic formatting/checking; do not let scripts make engineering judgments.
-9. **Explain the result.** Add a source/workflow note in the workbook and summarize assumptions, conflicts, and required FAE/Quartus/SI/layout confirmations.
+9. **Create the schema sidecar when the workbook is a project artifact.** Use `references/pin-assign-record-template.md` to write a Markdown sidecar with `schema_kind: pin-assign-workbench`, `workbook_path`, `source_records`, and `related_records` so the repo-level schema tools can route dependencies.
+10. **Explain the result.** Add a source/workflow note in the workbook and summarize assumptions, conflicts, and required FAE/Quartus/SI/layout confirmations.
 
 ## Source Discipline
 
@@ -73,6 +74,7 @@ Search user-provided files and local knowledge bases first. Browse only for miss
 - Peripheral package pin/net table.
 - Off-page connector lists grouped by byte lane, control group, local-only, and FPGA-only signals.
 - Review workbook with `Sources`, `Assumptions`, `Checks`, and `Change_Log`.
+- Markdown sidecar record with `schema_kind: pin-assign-workbench` for the workbook when downstream agents need routeable metadata.
 - Short explanation suitable for FAE, schematic review, and layout handoff.
 
 ## References
@@ -82,11 +84,13 @@ Search user-provided files and local knowledge bases first. Browse only for miss
 - Read `references/schematic-output-patterns.md` when producing OrCAD Capture, Capture CIS, or Allegro DE-HDL connector tables.
 - Read `references/validation-checklist.md` before final delivery.
 - Read `references/memory-interface-notes.md` for DDR/LPDDR-specific traps such as x32 vs 2ch x16, shared/T-line nets, ZQ, RZQ, REFCLK, NC, and RFU.
+- Read `references/pin-assign-record-template.md` and repo-root `../SCHEMA.md` when saving a routeable workbook sidecar record.
 
 ## Bundled Tools
 
 - `assets/pin-assign-template.xlsx`: starter workbook with recommended sheet names.
 - `scripts/format_pin_workbook.py`: styles a workbook and creates a mechanical check sheet for duplicate nets, blank pin/net mismatches, and duplicate pins.
+- `../tools/scripts/lint_record.py`: validates the Markdown workbook sidecar when one is created. It does not infer pin assignments or inspect workbook contents.
 
 ## Anti-Patterns
 

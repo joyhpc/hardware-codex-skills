@@ -1,7 +1,7 @@
 ---
 name: critical-component-selection
 description: >-
-  Use this skill when the user is making a freeze-grade component selection decision for hardware where the choice will be locked into schematic/BOM/pin assignment and at least two critical conditions apply: multi-year lifecycle/EOL/PCN/lead-time risk, toolchain verification such as EMIF/fitter/SI/PI/thermal, pinout/power/SI/thermal architecture impact, or vendor evidence that must be reconciled against requirements. Triggers include: 关键物料选型, BOM 冻结前评审, EOL/PCN 替代, 候选料号决策, 选型证据地图, selection map, 选型报告, 沟通报告, procurement brief, supplier inquiry, leadership brief, vendor 反馈与需求基线对账. Do NOT use for casual comparisons, learning questions, architecture sketches, or selections that do not require evidence reconciliation and freeze conditions.
+  Use this skill for freeze-grade hardware component decisions that need evidence reconciliation before a choice can be locked into schematic, BOM, pin assignment, layout, sourcing, or validation work. Trigger on critical component selection, BOM freeze review, EOL/PCN or supplier substitute decisions, candidate part-number decisions, shortlist review, vendor feedback against a requirement baseline, selection evidence map, procurement brief, supplier/FAE inquiry, leadership brief, 关键物料选型, BOM 冻结前评审, 选型证据地图, 选型报告, 沟通报告, or 候选料号决策. Common critical conditions include lifecycle/EOL/PCN/lead-time risk, toolchain verification such as EMIF/fitter/SI/PI/thermal, pinout/power/SI/thermal architecture impact, and vendor evidence that must be reconciled against requirements. Do NOT use for casual comparisons, learning questions, architecture sketches, or selections that do not require evidence reconciliation and freeze conditions.
 ---
 
 # Critical Component Selection
@@ -22,7 +22,7 @@ Identify the current entry phase before producing output:
 4. Pre-freeze review: run the freeze checklist and list blockers.
 5. Post-decision update: update the decision record, risks, and review date.
 
-Trim output to the active phase. Do not repeat all seven workflow steps when the user only needs an increment, but mention any missing prerequisite that blocks the phase.
+Trim output to the active phase. Do not repeat the full workflow when the user only needs an increment, but mention any missing prerequisite that blocks the phase.
 
 ## Evidence Rules
 
@@ -37,7 +37,7 @@ For every concrete component fact, cite one of:
 5. Tool output file, report, or run date.
 6. Project decision record or requirements file.
 
-Mark unknown or unsupported fields exactly as `TBD-evidence`. Mark contradictions as `conflict`. Do not soften either state in prose.
+Mark unknown or unsupported fields exactly as `TBD-evidence`. Mark contradictions as `conflict`. Mark evidence that is too old for the decision owner's freshness window as `stale-evidence`. Do not soften these states in prose.
 
 ## Workflow Checklist
 
@@ -48,17 +48,20 @@ Mark unknown or unsupported fields exactly as `TBD-evidence`. Mark contradiction
 5. Candidate classification: assign each candidate to `Primary`, `Backup`, `Rejected`, or `Watchlist`.
 6. Risk register: record supply, EOL, package/pinout, SI/PI/thermal, firmware/logic, cost, and substitute risks with mitigation owners.
 7. Engineering verification gate: state this decision's required validation, owner, pass criteria, and output artifact; do not assume device-category-specific gates.
-8. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
+8. External validation interface: when the decision objective needs a domain-specific skill, tool, or project checklist, list it in `external_validation_skills_needed`.
+9. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
 
 ## Selection Map Sidecar
 
 Create a project-layer Selection Map when the selection has many datasheets, PCNs, overview files, supplier messages, or more candidate routes than can usefully fit in the decision record.
 
+Use a Selection Map when any of these are true: candidate routes are >=5, source IDs are >=10, supplier/FAE/procurement message threads are >=3, or validation paths are >=3. The decision owner may also request one explicitly.
+
 The map is not a catalog of every part number. It exists to help the next selection step by preserving:
 
 1. Source navigation: where evidence lives and what conclusion it supports.
 2. Candidate funnel: `Primary`, `Backup`, `Watchlist`, `Rejected`, and `Closed` routes at the useful family or route level.
-3. Requirement coverage: which hard constraints are confirmed, conflicted, or still `TBD-evidence`.
+3. Requirement coverage: which hard constraints are confirmed, conflicted, stale, or still `TBD-evidence`.
 4. Rejection rationale: why a route was excluded and what evidence would reopen it.
 5. Evidence acquisition plan: who should ask the original vendor, distributor, FAE, procurement, internal owner, or tool/lab path for missing evidence.
 6. Tool validation map: what engineering validation must produce before freeze.
@@ -91,6 +94,8 @@ Use hardware freeze semantics:
 
 If any hard constraint lacks evidence, the strongest allowed status is `selected-not-frozen`, never `frozen`.
 
+If any hard constraint depends on `stale-evidence`, the strongest allowed status is also `selected-not-frozen` until the dated source is refreshed or explicitly accepted by the decision owner.
+
 ## Output Behavior
 
 Default to phase-trimmed output. Include only the sections needed for the current entry phase, plus `Evidence Gaps`, `Recommendation`, and `Next Actions` when applicable.
@@ -112,10 +117,11 @@ Full formal schema:
 7. `Evidence Gaps`
 8. `Risk Register`
 9. `Engineering Verification Gates`
-10. `Recommendation`
-11. `Freeze Checklist`
-12. `Record Location`
-13. `Next Actions`
+10. `External Validation Skills Needed`
+11. `Recommendation`
+12. `Freeze Checklist`
+13. `Record Location`
+14. `Next Actions`
 
 ## Workspace Interface
 
@@ -126,18 +132,26 @@ When working inside an existing workspace:
 3. Suggest saving the final decision to `hardware-projects/prj/<project>/decisions/<YYYYMMDD>-<component>-selection.md` or the closest existing project decision folder.
 4. Suggest adding a pointer to `CONTEXT_INDEX.md` after the decision record exists.
 5. Do not store real project facts, vendor-specific cheatsheets, or concrete part numbers in this skill.
+6. Follow `../SCHEMA.md` for saved `decision-record` and `selection-map` frontmatter so downstream agents can route on `schema_version`, `schema_kind`, `record_id`, `status`, `primary_candidate`, `backup_candidates`, `freeze_blockers`, `related_records`, `evidence_freshness_window_days`, and `external_validation_skills_needed` without reparsing prose.
+7. Run `../tools/scripts/lint_record.py <record.md>` before treating a saved record as handoff-ready when a local Python runtime is available. `scripts/lint_decision_record.py` remains only as a compatibility wrapper.
 
 ## References
 
-Load only the template needed for the active phase:
+Load only the schema or template needed for the active phase:
 
-1. `references/source-inventory-template.md` for source IDs and source trust boundaries.
-2. `references/evidence-matrix-template.md` for candidate evidence comparison.
-3. `references/risk-register-template.md` for structured risk capture.
-4. `references/decision-record-template.md` for the final selection record.
-5. `references/freeze-checklist-template.md` for pre-freeze gate review.
-6. `references/selection-map-template.md` for large evidence sets, candidate funnels, rejection ledgers, evidence acquisition reminders, and tool-validation navigation.
-7. `references/communication-report-template.md` for leadership, procurement, supplier/FAE, and project-meeting reports derived from the selection artifacts.
+1. `../SCHEMA.md` for saved record frontmatter fields, lint rule codes, and downstream routing contract.
+2. `references/source-inventory-template.md` for source IDs and source trust boundaries.
+3. `references/evidence-matrix-template.md` for candidate evidence comparison.
+4. `references/risk-register-template.md` for structured risk capture.
+5. `references/decision-record-template.md` for the final selection record.
+6. `references/freeze-checklist-template.md` for pre-freeze gate review.
+7. `references/selection-map-template.md` for large evidence sets, candidate funnels, rejection ledgers, evidence acquisition reminders, and tool-validation navigation.
+8. `references/communication-report-template.md` for leadership, procurement, supplier/FAE, and project-meeting reports derived from the selection artifacts.
+
+## Bundled Tools
+
+- `../tools/scripts/lint_record.py`: mechanically checks cross-skill record frontmatter, kind-specific fields, status/class table cells, evidence aging, JSON output, and `--stamp`. It does not parse datasheets, query suppliers, scrape PCNs, or make engineering judgments.
+- `scripts/lint_decision_record.py`: compatibility wrapper for the repo-level linter.
 
 ## Anti-Patterns
 
@@ -145,5 +159,5 @@ Do not include in this skill:
 
 1. Real project data or real part-number examples.
 2. Vendor-specific lifecycle claims.
-3. Domain cheatsheets such as DDR pinout rules, PMIC compensation recipes, or connector SI tables.
-4. Scripts that parse datasheets, query suppliers, or scrape PCNs; those belong in project tooling after repeated use proves the schema is stable.
+3. Part-specific, tool-specific, or topology-specific facts such as DDR pinout rules, PMIC compensation recipes, connector SI tables, vendor command sequences, or concrete validation pass/fail thresholds. Generic freeze semantics, evidence trust levels, and risk categories are allowed because they define the decision process.
+4. Scripts that parse datasheets, query suppliers, or scrape PCNs; those belong in project tooling after repeated use proves the schema is stable. Mechanical lint scripts for this skill's own output schema are allowed.

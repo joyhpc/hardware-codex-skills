@@ -29,4 +29,5 @@ Decision-state rule:
 
 - `selected-not-frozen`: primary candidate exists, but one or more gates remain `blocked` or `TBD-evidence`.
 - `frozen`: every non-N-A gate is `pass`.
-- Never mark a component `frozen` when lifecycle, commercial terms, or required engineering validation is still `TBD-evidence`.
+- Treat `stale-evidence` in the evidence matrix as a blocker for the affected gate unless the decision owner explicitly accepts the stale source with a review date.
+- Never mark a component `frozen` when lifecycle, commercial terms, or required engineering validation is still `TBD-evidence` or `stale-evidence`.

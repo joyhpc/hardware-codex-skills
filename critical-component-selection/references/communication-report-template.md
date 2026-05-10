@@ -2,7 +2,7 @@
 
 Use this template to produce a concise report from an existing component selection decision record, selection map, evidence matrix, risk register, or freeze checklist.
 
-The report is a communication artifact, not a new evidence source. Do not introduce new component facts. Keep unsupported facts as `TBD-evidence`, conflicts as `conflict`, and current decision strength visible.
+The report is a communication artifact, not a new evidence source. Do not introduce new component facts. Keep unsupported facts as `TBD-evidence`, stale facts as `stale-evidence`, conflicts as `conflict`, and current decision strength visible.
 
 ## Report Type
 

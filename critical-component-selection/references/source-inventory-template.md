@@ -20,3 +20,4 @@ Rules:
 - Use `Source ID` values in evidence matrix rows.
 - Do not treat supplier or secondary sources as lifecycle/freeze authority unless the decision owner explicitly accepts that evidence class.
 - Mark source conflicts as `conflict` in the evidence matrix rather than hiding them in notes.
+- If a source is older than the decision record's `evidence_stale_after_days` window for a fact that can change, keep the source listed but mark affected evidence rows as `stale-evidence`.

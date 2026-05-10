@@ -50,6 +50,38 @@ Typical triggers:
 
 Do not use it for simple one-off pin lookups, package selection, broad schematic review, layout/SI advice, FPGA toolchain constraint files such as QSF/XDC/LPF/SDC unless the user also asks for the Excel review surface, or when no pin/net deliverable is requested.
 
+## Schema Layer and Closed-Loop Tooling
+
+Skills in this repository produce Markdown records that share a common machine-readable contract defined in [`SCHEMA.md`](./SCHEMA.md). Three record kinds are currently registered:
+
+- `decision-record` — produced by `critical-component-selection`
+- `selection-map` — sidecar map produced by `critical-component-selection` for complex selections
+- `pin-assign-workbench` — sidecar metadata for the .xlsx workbook produced by `pin-assign-workbench`
+
+Each record is a single `.md` file with a YAML frontmatter envelope (identity, lifecycle, graph edges, routing) and a Markdown body (tables, narrative). The envelope is the interface other agents consume; the body is the authoring surface. This separation keeps the LLM's job to what only LLMs do well and pushes routing, filtering, and dependency tracking onto deterministic tooling.
+
+Two scripts live at the repo root and operate across skills:
+
+- **`tools/scripts/lint_record.py`** — validates the envelope, dispatches to kind-specific rules, scans body tables for closed-vocabulary status cells and stale evidence rows, and stamps `last_lint_pass` on success. Supports `--format json` for CI/agent consumption and `--strict-aging` to gate on evidence freshness.
+- **`tools/scripts/build_blocker_dag.py`** — walks a directory of records, parses every valid frontmatter, and emits the cross-record graph as JSON or Mermaid. Output feeds `hwpm` CPM, dashboards, or any meta-agent doing route-and-wait orchestration.
+
+These tools are not skills. They are repo-level developer tooling that enforces and consumes the schema contract.
+
+The closed loop:
+
+```text
+1. Skill workflow (LLM)              writes Markdown record with frontmatter
+2. lint_record.py --strict --stamp   gates on schema and consistency
+3. build_blocker_dag.py              walks records, emits JSON
+4. hwpm / meta-agent / dashboard     consume JSON, compute CPM, route tasks
+5. external skill (si, emif, ...)    runs validation, produces artifact
+6. Skill workflow updates body       evidence row goes confirmed
+7. lint_record.py                    re-validates; if CR001 passes, status -> frozen
+8. build_blocker_dag.py rebuilds     downstream tools see updated graph
+```
+
+Steps 2-4 and 7-8 require no LLM. The LLM is constrained to steps 1 and 6, where its strengths actually pay off. See [`SCHEMA.md`](./SCHEMA.md) for the full rule reference, JSON output shapes, and DAG schema.
+
 ## Skill Activation Policy
 
 This repository may contain more reusable methods than should be active in a given Codex runtime. Keep new or experimental skills as repository assets first. Install a skill into `~/.codex/skills` only after repeated real tasks show that its trigger boundary is stable and valuable.
@@ -171,30 +203,44 @@ or the closest existing revision decision folder.
 
 ## Repository Layout
 
-Each top-level directory is one Codex skill:
+The repo has two top-level skills plus repo-level schema documentation and tooling:
 
 ```text
 hardware-codex-skills/
 ├── README.md
+├── SCHEMA.md                                     # Multi-kind schema contract (v1)
+├── tools/                                        # Repo-level tooling, not a skill
+│   ├── scripts/
+│   │   ├── lint_record.py                        # Unified multi-kind lint
+│   │   └── build_blocker_dag.py                  # Cross-record DAG builder
+│   └── tests/
+│       ├── test_lint_record.py
+│       └── test_build_dag.py
 ├── critical-component-selection/
 │   ├── SKILL.md
-│   ├── agents/
-│   │   └── openai.yaml
+│   ├── agents/openai.yaml
+│   ├── examples/
+│   │   ├── example-decision-record.md            # schema_kind: decision-record
+│   │   └── example-selection-map.md              # schema_kind: selection-map
 │   └── references/
-│       ├── decision-record-template.md
+│       ├── decision-record-template.md           # legacy v1 (no envelope)
+│       ├── decision-record-template-v2.md        # current (with envelope)
+│       ├── selection-map-template.md             # legacy v1
+│       ├── selection-map-template-v2.md          # current
 │       ├── communication-report-template.md
 │       ├── evidence-matrix-template.md
 │       ├── freeze-checklist-template.md
 │       ├── risk-register-template.md
-│       ├── selection-map-template.md
 │       └── source-inventory-template.md
 └── pin-assign-workbench/
     ├── SKILL.md
-    ├── agents/
-    │   └── openai.yaml
+    ├── agents/openai.yaml
     ├── assets/
     │   └── pin-assign-template.xlsx
+    ├── examples/
+    │   └── example-pin-assign-record.md          # schema_kind: pin-assign-workbench
     ├── references/
+    │   ├── pin-assign-record-template.md         # markdown sidecar template
     │   ├── memory-interface-notes.md
     │   ├── schematic-output-patterns.md
     │   ├── source-policy.md
@@ -202,6 +248,47 @@ hardware-codex-skills/
     │   └── workbook-pattern.md
     └── scripts/
         └── format_pin_workbook.py
+```
+
+## Validating and Graphing Records
+
+After a skill produces a record, validate it before commit:
+
+```bash
+# Lint a single record (human-readable output)
+python tools/scripts/lint_record.py \
+  hardware-projects/prj/<project>/decisions/<record>.md --stamp
+
+# Strict mode for CI: warnings become errors
+python tools/scripts/lint_record.py \
+  hardware-projects/prj/<project>/decisions/<record>.md --strict
+
+# JSON output for meta-agent or dashboards
+python tools/scripts/lint_record.py \
+  hardware-projects/prj/<project>/decisions/*.md --format json
+```
+
+Build the cross-record graph for `hwpm` or a project dashboard:
+
+```bash
+# Summary view
+python tools/scripts/build_blocker_dag.py \
+  hardware-projects/prj/<project>/decisions/ --format summary
+
+# JSON for hwpm or other consumers
+python tools/scripts/build_blocker_dag.py \
+  hardware-projects/prj/<project>/decisions/ --format json > dag.json
+
+# Mermaid for human review
+python tools/scripts/build_blocker_dag.py \
+  hardware-projects/prj/<project>/decisions/ --format mermaid > dag.mmd
+```
+
+Tests live under `tools/tests/`:
+
+```bash
+python tools/tests/test_lint_record.py
+python tools/tests/test_build_dag.py
 ```
 
 ## Repository Boundaries

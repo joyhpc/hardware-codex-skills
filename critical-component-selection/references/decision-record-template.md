@@ -1,17 +1,64 @@
-# Decision Record Template
+# Decision Record Template (v2 / schema_version 1, schema_kind: decision-record)
 
-Use this for the project-layer decision artifact. Do not save real project facts inside the skill.
+This template adds a YAML frontmatter envelope over the original `decision-record-template.md`. The frontmatter is the machine-readable interface for the meta-agent and lint; the body remains human-authored.
 
-## Metadata
+See `../../SCHEMA.md` for envelope reference and closed enumerations.
 
-| Field | Value |
-|---|---|
-| Project |  |
-| Component / function |  |
-| Decision date |  |
-| Decision owner |  |
-| Review date |  |
-| Record status | draft / shortlisted / selected-not-frozen / frozen / blocked / superseded |
+---
+
+```yaml
+---
+schema_version: 1
+schema_kind: decision-record
+record_id: <YYYYMMDD>-<project-slug>-<component-slug>
+project: <project-id>
+revision: 1
+
+status: draft
+created_date: <YYYY-MM-DD>
+review_date:
+freeze_target_date:
+maintainer:
+
+supersedes: null
+superseded_by: null
+
+related_records: []
+# Example:
+#   - kind: selection-map
+#     id: <YYYYMMDD>-<project>-<component>-selection-map
+#     role: sidecar
+
+evidence_freshness_window_days: 60
+
+primary_candidate:
+  pn:
+  manufacturer:
+  evidence_status: TBD-evidence
+
+backup_candidates: []
+
+freeze_blockers: []
+# Example entry:
+#   - id: fb-pcn-window
+#     field: lifecycle
+#     needed_evidence: pcn-or-vendor-roadmap-statement
+#     owner: procurement
+#     due_date: <YYYY-MM-DD>
+
+external_validation_skills_needed: []
+# Example entry:
+#   - skill: si-channel-budget
+#     reason: <why this skill is required to close a freeze blocker>
+
+evidence_root:
+risk_register:
+
+last_lint_pass: null
+---
+```
+
+# <Component> Selection Decision
 
 ## Decision Objective
 
@@ -19,11 +66,17 @@ State the exact freeze-grade choice being made.
 
 ## Requirement Baseline
 
-Link the requirement file, message, or project record. Split requirements into:
+Link the requirement file. Split into:
 
 - Hard constraints:
 - Changeable constraints:
 - Acceptance criteria:
+
+## Source Inventory
+
+| Source ID | Type | Title / description | Date | Owner / path / URL | Trust level | Notes |
+|---|---|---|---|---|---|---|
+| S1 |  |  |  |  | primary |  |
 
 ## Candidate Classification
 
@@ -31,16 +84,21 @@ Link the requirement file, message, or project record. Split requirements into:
 |---|---|---|---|
 | Primary |  |  |  |
 | Backup |  |  |  |
-| Rejected |  |  |  |
-| Watchlist |  |  |  |
 
-## Evidence Summary
+## Evidence Matrix
 
-Link the source inventory and evidence matrix. List only decision-changing facts.
+| Field | Candidate | Requirement | Claimed value | Evidence source | Evidence date | Status | Notes |
+|---|---|---|---|---|---|---|---|
+| Interface / protocol |  |  |  |  |  | TBD-evidence |  |
+| Lifecycle / EOL / PCN |  |  |  |  |  | TBD-evidence |  |
+
+> **Body rules**:
+> - `Status` cells must use `confirmed`, `TBD-evidence`, `conflict`, `N-A`, or `stale-evidence`. Lint rule **BD001** rejects others.
+> - When both `Status` and `Evidence date` columns exist, lint rule **BD002** flags `confirmed` rows whose date is older than `evidence_freshness_window_days` before `created_date`.
 
 ## Risk Summary
 
-Link the risk register and list unresolved high-impact risks.
+Link the risk register. List unresolved high-impact risks; keep details external.
 
 ## Engineering Verification Gates
 
@@ -48,15 +106,19 @@ Link the risk register and list unresolved high-impact risks.
 |---|---|---|---|---|
 |  |  |  |  | TBD-evidence |
 
+> Status uses `pass`, `blocked`, `TBD-evidence`, or `N-A`.
+
 ## Decision
 
-State what is selected now, what is not selected, and what remains blocked before freeze.
+State what is selected, what is not, and what remains blocked. The frontmatter `status` is canonical; this section is the human-readable explanation.
 
-Allowed decision strengths:
+## Freeze Blockers Narrative
 
-- `selected-not-frozen`: primary candidate can proceed to procurement and engineering validation, but at least one freeze gate is open.
-- `frozen`: schematic/BOM/pin/layout freeze is allowed because all non-N-A freeze gates passed.
-- `blocked`: no candidate can proceed without named missing evidence or an architecture change.
+For each `freeze_blockers[]` entry in the frontmatter, expand here. Keep IDs (`fb-*`) in sync.
+
+## External Validation Handoff
+
+For each `external_validation_skills_needed[]`, state expected artifact and which `freeze_blocker` it closes.
 
 ## Signoff
 
@@ -65,3 +127,11 @@ Allowed decision strengths:
 | Engineering |  |  |  |
 | Procurement |  |  |  |
 | Project owner |  |  |  |
+
+---
+
+**Lint before commit:**
+
+```bash
+python tools/scripts/lint_record.py path/to/this/record.md --stamp
+```
