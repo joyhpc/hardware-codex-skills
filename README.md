@@ -111,6 +111,7 @@ The skill is designed to produce decision artifacts, not prose-only advice.
 Common outputs:
 
 - **Decision Record**: the current decision, candidate classification, risk summary, freeze blockers, and next actions.
+- **Hard-Gate Screen**: early pass/block review of orderable identity, package, lifecycle, commercial, toolchain, validation, and substitute gates before ranking.
 - **Source Inventory**: the evidence list with trust boundaries.
 - **Evidence Matrix**: one candidate-field per row, using `confirmed`, `TBD-evidence`, `conflict`, or `N-A`.
 - **Risk Register**: supply, lifecycle, package, SI/PI/thermal, logic/toolchain, cost, and substitute risks with owners.
@@ -118,7 +119,7 @@ Common outputs:
 - **Selection Map**: a sidecar map for large investigations with source navigation, candidate funnel, rejection ledger, evidence acquisition plan, and tool-validation map.
 - **Communication Report**: audience-specific report for leadership, procurement, supplier/FAE inquiry, or project meetings.
 
-The most important rule: if lifecycle, price, lead time, MOQ, temperature grade, PCN/EOL state, stock, or validation status is not backed by a dated source, it must stay `TBD-evidence`.
+The practical rule: first decide whether the candidate can freeze, then explain why. If lifecycle, price, lead time, MOQ, temperature grade, PCN/EOL state, stock, or validation status is not backed by a dated source, it must stay `TBD-evidence` and cannot support `frozen`.
 
 ## What `pin-assign-workbench` Produces
 

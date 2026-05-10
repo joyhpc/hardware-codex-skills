@@ -84,6 +84,18 @@ Link: `hardware-projects/prj/mainboard-r3/requirements/main-memory-r3.md`
   - SI channel loss < 6 dB at Nyquist
   - Two compliant second-source candidates
 
+## Hard Gate Screen
+
+| Gate | Requirement / pass condition | Candidate impact | Evidence pointer | Status | Owner / next action |
+|---|---|---|---|---|---|
+| Exact orderable identity | Exact order code and package are confirmed | Primary can remain selected | S1 | pass | hardware-owner / keep source current |
+| Package / footprint / pinout | 200-ball FBGA standard ballout is confirmed | Primary can proceed to pin workbench | S1 | pass | hardware-owner / link pin workbook |
+| Lifecycle / PCN / EOL | 5-year supply window from freeze date | Primary cannot freeze | S2 | blocked | procurement / obtain formal PCN window |
+| Commercial availability | Sample and production terms are dated | Procurement can sample, not production freeze | S2 | TBD-evidence | procurement / obtain quote |
+| Toolchain / firmware / logic support | EMIF/fitter timing pass exists | Primary can proceed to SI validation | S3 | pass | digital / rerun if topology changes |
+| SI / PI / thermal / mechanical risk | Channel simulation and board-level checks pass | Primary cannot freeze |  | TBD-evidence | si-engineer / run SI artifact |
+| Substitute path | At least one backup route remains actionable | Backup remains watch item | S4 | TBD-evidence | hardware-owner / close backup evidence |
+
 ## Source Inventory
 
 | Source ID | Type | Title | Date | Path / URL | Trust level | Notes |
@@ -100,6 +112,13 @@ Link: `hardware-projects/prj/mainboard-r3/requirements/main-memory-r3.md`
 | Primary | EXAMPLE-LPDDR5-X16-A | S1, S2, S3 | Datasheet confirmed, fitter pass, vendor lifecycle statement |
 | Backup | EXAMPLE-LPDDR5-X16-B | S4 | Preliminary datasheet, no SI run, no PCN window |
 | Rejected | EXAMPLE-LPDDR5-X16-C | (web catalog) | Industrial grade not confirmed in any primary source |
+
+## Rejection Ledger
+
+| Candidate / route | Rejection or demotion reason | Evidence pointer | Reopen condition | Owner |
+|---|---|---|---|---|
+| EXAMPLE-LPDDR5-X16-C | Industrial grade not confirmed by primary evidence | Web catalog only | Official datasheet/order-code evidence confirms grade and package | hardware-owner |
+| EXAMPLE-LPDDR5-X16-B | Kept as backup because datasheet is preliminary and lifecycle evidence is open | S4 | Production datasheet and lifecycle evidence arrive | procurement |
 
 ## Evidence Matrix
 
@@ -134,7 +153,9 @@ Top unresolved risks:
 
 ## Decision
 
-`EXAMPLE-LPDDR5-X16-A` is **primary**, status `selected-not-frozen`. Procurement may proceed with sample qualification. Cannot advance to `frozen` until both `fb-pcn-window` and `fb-si-validation` close.
+Do not freeze; stay `selected-not-frozen`.
+
+`EXAMPLE-LPDDR5-X16-A` is **primary**. Procurement may proceed with sample qualification. Cannot advance to `frozen` until both `fb-pcn-window` and `fb-si-validation` close.
 
 `EXAMPLE-LPDDR5-X16-B` remains backup pending preliminary-to-production datasheet promotion.
 

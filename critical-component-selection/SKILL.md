@@ -8,7 +8,7 @@ description: >-
 
 ## Purpose
 
-Drive hardware component choices that are serious enough to freeze into schematic, BOM, pin assignment, or layout constraints. Treat the skill as a per-decision workflow, not a project database.
+Drive hardware component choices that are serious enough to freeze into schematic, BOM, pin assignment, sourcing, validation, or layout constraints. Treat the skill as a practical freeze review workflow, not a project database or a part recommender.
 
 Keep project facts outside the skill. Use `CONTEXT_INDEX.md` when present, project folders such as `hardware-projects/prj/<project>/`, vendor files, datasheets, PCNs, and current email/procurement evidence as the source of truth.
 
@@ -23,6 +23,8 @@ Identify the current entry phase before producing output:
 5. Post-decision update: update the decision record, risks, and review date.
 
 Trim output to the active phase. Do not repeat the full workflow when the user only needs an increment, but mention any missing prerequisite that blocks the phase.
+
+For shortlist review, supplier substitute review, blocked decisions, or pre-freeze review, use `references/decision-playbook.md` before recommending a status.
 
 ## Evidence Rules
 
@@ -43,13 +45,25 @@ Mark unknown or unsupported fields exactly as `TBD-evidence`. Mark contradiction
 
 1. Requirement baseline: identify hard constraints, changeable constraints, target lifetime, and acceptance criteria.
 2. Source inventory: list source IDs before making component claims.
-3. Hard-gate screen: reject candidates that fail non-negotiable constraints or lack required evidence.
-4. Candidate evidence matrix: compare one field for one candidate per row using evidence status, not confidence language.
-5. Candidate classification: assign each candidate to `Primary`, `Backup`, `Rejected`, or `Watchlist`.
-6. Risk register: record supply, EOL, package/pinout, SI/PI/thermal, firmware/logic, cost, and substitute risks with mitigation owners.
-7. Engineering verification gate: state this decision's required validation, owner, pass criteria, and output artifact; do not assume device-category-specific gates.
-8. External validation interface: when the decision objective needs a domain-specific skill, tool, or project checklist, list it in `external_validation_skills_needed`.
-9. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
+3. Hard-gate screen: reject candidates that fail non-negotiable constraints and block candidates whose hard gates lack evidence.
+4. Evidence authority check: separate `primary`, `supplier`, `project`, and `secondary` sources before relying on a claim.
+5. Candidate evidence matrix: compare one field for one candidate per row using evidence status, not confidence language.
+6. Candidate elimination and classification: assign each candidate to `Primary`, `Backup`, `Rejected`, `Watchlist`, or `Closed`, and cite what would reopen rejected routes.
+7. Risk register: record supply, EOL, package/pinout, SI/PI/thermal, firmware/logic, cost, and substitute risks with mitigation owners.
+8. Engineering verification gate: state this decision's required validation, owner, pass criteria, and output artifact; do not assume device-category-specific gates.
+9. External validation interface: when the decision objective needs a domain-specific skill, tool, or project checklist, list it in `external_validation_skills_needed`.
+10. Decision and freeze path: recommend one next decision, list freeze blockers, and propose where to save the record.
+
+## Decision Review Rules
+
+Default to an evidence-first review:
+
+1. Answer "can this freeze?" with `yes`, `no`, or `not yet` before long explanation when the user asks for a freeze decision.
+2. Do not recommend `frozen` while any hard gate is `TBD-evidence`, `conflict`, `stale-evidence`, or `blocked`.
+3. Do not promote a candidate to `Primary` only because it has better apparent specifications; promote the candidate with the clearest evidence path to freeze.
+4. Treat supplier substitutes as deltas against the requirement baseline, not as a fresh marketing comparison.
+5. Turn every blocker into an owner, needed evidence format, and due or review date.
+6. If category-specific validation is required, route it through `external_validation_skills_needed`; do not invent domain pass/fail rules inside this skill.
 
 ## Selection Map Sidecar
 
@@ -112,16 +126,18 @@ Full formal schema:
 2. `Entry Phase`
 3. `Source Inventory`
 4. `Requirement Baseline`
-5. `Candidate Classification`
-6. `Evidence Matrix`
-7. `Evidence Gaps`
-8. `Risk Register`
-9. `Engineering Verification Gates`
-10. `External Validation Skills Needed`
-11. `Recommendation`
-12. `Freeze Checklist`
-13. `Record Location`
-14. `Next Actions`
+5. `Hard Gate Screen`
+6. `Candidate Classification`
+7. `Rejection Ledger`
+8. `Evidence Matrix`
+9. `Evidence Gaps`
+10. `Risk Register`
+11. `Engineering Verification Gates`
+12. `External Validation Skills Needed`
+13. `Recommendation`
+14. `Freeze Checklist`
+15. `Record Location`
+16. `Next Actions`
 
 ## Workspace Interface
 
@@ -140,13 +156,14 @@ When working inside an existing workspace:
 Load only the schema or template needed for the active phase:
 
 1. `../SCHEMA.md` for saved record frontmatter fields, lint rule codes, and downstream routing contract.
-2. `references/source-inventory-template.md` for source IDs and source trust boundaries.
-3. `references/evidence-matrix-template.md` for candidate evidence comparison.
-4. `references/risk-register-template.md` for structured risk capture.
-5. `references/decision-record-template.md` for the final selection record.
-6. `references/freeze-checklist-template.md` for pre-freeze gate review.
-7. `references/selection-map-template.md` for large evidence sets, candidate funnels, rejection ledgers, evidence acquisition reminders, and tool-validation navigation.
-8. `references/communication-report-template.md` for leadership, procurement, supplier/FAE, and project-meeting reports derived from the selection artifacts.
+2. `references/decision-playbook.md` for shortlist reviews, supplier substitutes, hard-gate screening, pre-freeze review, blocker shaping, and domain-validation dispatch.
+3. `references/source-inventory-template.md` for source IDs and source trust boundaries.
+4. `references/evidence-matrix-template.md` for candidate evidence comparison.
+5. `references/risk-register-template.md` for structured risk capture.
+6. `references/decision-record-template.md` for the final selection record.
+7. `references/freeze-checklist-template.md` for pre-freeze gate review.
+8. `references/selection-map-template.md` for large evidence sets, candidate funnels, rejection ledgers, evidence acquisition reminders, and tool-validation navigation.
+9. `references/communication-report-template.md` for leadership, procurement, supplier/FAE, and project-meeting reports derived from the selection artifacts.
 
 ## Bundled Tools
 

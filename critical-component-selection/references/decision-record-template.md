@@ -1,8 +1,8 @@
 # Decision Record Template (v2 / schema_version 1, schema_kind: decision-record)
 
-This template adds a YAML frontmatter envelope over the original `decision-record-template.md`. The frontmatter is the machine-readable interface for the meta-agent and lint; the body remains human-authored.
+This template adds a YAML frontmatter envelope over the original `decision-record-template.md`. The frontmatter is the machine-readable interface for the meta-agent and lint; the body remains the human review surface.
 
-See `../../SCHEMA.md` for envelope reference and closed enumerations.
+See `../../SCHEMA.md` for envelope reference and closed enumerations. See `decision-playbook.md` for practical hard-gate and freeze-review rules.
 
 ---
 
@@ -72,6 +72,22 @@ Link the requirement file. Split into:
 - Changeable constraints:
 - Acceptance criteria:
 
+## Hard Gate Screen
+
+Screen hard gates before ranking candidates. A candidate with an unresolved hard gate can be investigated, but cannot be `frozen`.
+
+| Gate | Requirement / pass condition | Candidate impact | Evidence pointer | Status | Owner / next action |
+|---|---|---|---|---|---|
+| Exact orderable identity |  |  |  | TBD-evidence |  |
+| Package / footprint / pinout |  |  |  | TBD-evidence |  |
+| Lifecycle / PCN / EOL |  |  |  | TBD-evidence |  |
+| Commercial availability |  |  |  | TBD-evidence |  |
+| Toolchain / firmware / logic support |  |  |  | TBD-evidence |  |
+| SI / PI / thermal / mechanical risk |  |  |  | TBD-evidence |  |
+| Substitute path |  |  |  | TBD-evidence |  |
+
+> Status uses `pass`, `blocked`, `TBD-evidence`, or `N-A`. If a gate is `blocked` or `TBD-evidence`, keep or create a matching `freeze_blockers[]` entry in frontmatter.
+
 ## Source Inventory
 
 | Source ID | Type | Title / description | Date | Owner / path / URL | Trust level | Notes |
@@ -84,6 +100,17 @@ Link the requirement file. Split into:
 |---|---|---|---|
 | Primary |  |  |  |
 | Backup |  |  |  |
+| Watchlist |  |  |  |
+| Rejected |  |  |  |
+| Closed |  |  |  |
+
+## Rejection Ledger
+
+Record why a route was excluded and what evidence would reopen it.
+
+| Candidate / route | Rejection or demotion reason | Evidence pointer | Reopen condition | Owner |
+|---|---|---|---|---|
+|  |  |  |  |  |
 
 ## Evidence Matrix
 
@@ -110,7 +137,7 @@ Link the risk register. List unresolved high-impact risks; keep details external
 
 ## Decision
 
-State what is selected, what is not, and what remains blocked. The frontmatter `status` is canonical; this section is the human-readable explanation.
+State what is selected, what is not, and what remains blocked. Start with one of: `freeze`, `do not freeze`, `stay selected-not-frozen`, `block`, or `supersede`. The frontmatter `status` is canonical; this section is the human-readable explanation.
 
 ## Freeze Blockers Narrative
 
