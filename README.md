@@ -37,23 +37,40 @@ Do not use it for casual comparisons, learning questions, or low-risk part recom
 
 ### `pin-assign-workbench`
 
-Use this skill only for deliverable-grade pin/net assignment workflows where an agent must produce or audit a concrete Excel, CSV, OrCAD/Allegro off-page connector list, schematic-symbol-order table, or similar pin/net artifact from authoritative sources.
+Use this skill only for deliverable-grade pin/net assignment workflows where an agent must produce or audit a concrete Excel, CSV, OrCAD Capture, Cadence Capture CIS, Allegro DE-HDL off-page connector list, schematic-symbol-order table, or similar pin/net artifact from authoritative sources.
 
 Typical triggers:
 
 - FPGA/SoC to memory or peripheral pin assignment workbook
 - package ballout to schematic symbol mapping table
-- OrCAD/Allegro off-page connector list generation
+- OrCAD Capture, Capture CIS, or Allegro DE-HDL connector list generation
 - schematic-order pin/net Excel or CSV output
 - pin assignment audit against vendor rules and source evidence
+- `pin assign 工作簿`, `引脚分配表`, `原理图顺序网名表`, `封装 ballout 映射`, `管脚映射审核`
 
-Do not use it for simple one-off pin lookups, package selection, broad schematic review, layout/SI advice, or when no pin/net deliverable is requested.
+Do not use it for simple one-off pin lookups, package selection, broad schematic review, layout/SI advice, FPGA toolchain constraint files such as QSF/XDC/LPF/SDC unless the user also asks for the Excel review surface, or when no pin/net deliverable is requested.
 
 ## Skill Activation Policy
 
 This repository may contain more reusable methods than should be active in a given Codex runtime. Keep new or experimental skills as repository assets first. Install a skill into `~/.codex/skills` only after repeated real tasks show that its trigger boundary is stable and valuable.
 
 Prefer explicit prompts such as `Use pin-assign-workbench...` during incubation. This avoids loading too many hardware workflows by default and reduces routing mistakes.
+
+### Graduation Criteria
+
+A skill graduates from repo asset to default-installed only after all of:
+
+1. Used successfully on at least 3 distinct real projects by the maintainer.
+2. The frontmatter `description` has been revised at least once based on observed mis-triggers or missed triggers.
+3. All scripts pass a stress test on a known-good real workbook with zero false positives in `Mechanical_Checks`.
+4. A second engineer or AI reviewer has audited the skill against this repo's anti-patterns.
+5. At least one end-to-end run has produced a workbook that was actually pasted into OrCAD Capture, Cadence Capture CIS, or Allegro DE-HDL and reviewed without skill-induced rework.
+
+Until all criteria pass, prefer explicit invocation: `Use pin-assign-workbench ...`
+
+### Domain Notes Carve-Out
+
+`critical-component-selection` is a project-agnostic selection workflow and should not include domain cheatsheets. Deliverable-production skills such as `pin-assign-workbench` may include narrow domain notes only when the final artifact would otherwise be ambiguous, such as DDR/LPDDR topology distinctions, shared nets, ZQ/RZQ, NC, and RFU handling. Those notes are prompts to verify current vendor documents, not authoritative pinout data.
 
 ## What `critical-component-selection` Produces
 
@@ -127,6 +144,12 @@ ln -sfn "$(pwd)/pin-assign-workbench" \
 ```
 
 Until that symlink exists, it remains a repository asset rather than a default runtime skill.
+
+To uninstall it from the runtime skill list:
+
+```bash
+unlink "${CODEX_HOME:-$HOME/.codex}/skills/pin-assign-workbench"
+```
 
 ## Quick Start For AI Agents
 

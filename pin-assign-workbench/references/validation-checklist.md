@@ -7,6 +7,8 @@ Run this before delivery.
 - Every mapping has a source: pinout, placement rule, package ballout, schematic order, or user instruction.
 - Source sheet includes title, revision/date, path/URL, and table/figure/section.
 - Non-authoritative references are labeled as examples or cross-checks.
+- `Pin_Net_Output` rows with any pin/net content have non-empty `Source IDs`.
+- Unknown cells are marked exactly as `TBD-source`; source contradictions are marked exactly as `conflict`.
 
 ## Mapping Integrity
 
@@ -26,7 +28,7 @@ Run this before delivery.
 ## Net Names
 
 - Net names are CAD-safe and consistent.
-- Duplicate net names are either intentional/shared or flagged.
+- Duplicate net names are either intentional/shared with `Intentional Duplicate Marker = Y` or flagged.
 - Bus syntax is avoided unless the user explicitly asks for it.
 - Prefixes distinguish repeated devices.
 

@@ -2,6 +2,8 @@
 
 Use this reference for DDR/LPDDR-style work. It is not a substitute for the current vendor documents.
 
+Accuracy boundary: last reviewed as workflow guidance on 2026-05-10. Re-verify LPDDR5/LPDDR5X distinctions, topology rules, and package-specific behavior against current vendor documents and applicable JEDEC material before final delivery.
+
 ## Topology Traps
 
 - `x32` and `2ch x16` are not automatically interchangeable.

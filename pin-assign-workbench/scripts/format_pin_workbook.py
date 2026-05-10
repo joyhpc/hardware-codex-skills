@@ -2,7 +2,8 @@
 """Format and mechanically check a pin assignment workbook.
 
 This script intentionally does not infer pin assignments. It styles workbook
-sheets and creates/refreshes a mechanical checks sheet from existing columns.
+sheets and creates/refreshes a mechanical checks sheet from existing columns,
+including duplicate nets/pins, blank pin/net mismatches, and source ID gaps.
 """
 
 from __future__ import annotations
@@ -31,6 +32,37 @@ DEFAULT_SKIP_SHEETS = {
     "Change_Log",
     "Mechanical_Checks",
 }
+EXACT_NET_HEADERS = {
+    "net",
+    "net name",
+    "net_name",
+    "schematic net",
+    "schematic net name",
+    "lpddr5 netname",
+    "lpddr5 net name",
+}
+EXCLUDE_NET_SUBSTRINGS = ("class", "group", "type", "role", "category")
+SOURCE_HEADERS = {"source", "source id", "source ids", "sources", "source_id", "source_ids"}
+SOURCE_REVIEW_MARKERS = {"tbd-source", "conflict"}
+INTENTIONAL_DUPLICATE_HEADERS = {
+    "intentional duplicate marker",
+    "intentional duplicate",
+    "intentional_duplicate",
+    "duplicate ok",
+    "duplicate_ok",
+}
+FPGA_PIN_SUBSTRINGS = ("fpga pin", "soc pin", "device pin")
+PERIPHERAL_PIN_SUBSTRINGS = (
+    "peripheral pin",
+    "peripheral ball",
+    "memory pin",
+    "memory ball",
+    "mapped peripheral pin",
+    "mapped peripheral pin/ball",
+)
+GENERIC_PIN_EXACT_HEADERS = {"pin", "pin number", "pin/ball", "ball"}
+EXCLUDE_PIN_SUBSTRINGS = ("pin name", "signal name", "vendor signal")
+TRUE_MARKERS = {"y", "yes", "true", "1", "ok", "intentional"}
 
 
 def parse_cols(value: str | None) -> set[int]:
@@ -53,17 +85,56 @@ def parse_cols(value: str | None) -> set[int]:
     return cols
 
 
-def infer_columns(headers: Iterable[str], keyword: str) -> set[int]:
+def normalize_header(value: object) -> str:
+    return " ".join(str(value or "").strip().lower().replace("_", " ").split())
+
+
+def infer_exact_columns(headers: Iterable[str], allowed: set[str]) -> set[int]:
     cols = set()
     for idx, header in enumerate(headers, start=1):
-        h = str(header or "").lower()
-        if keyword in h:
+        h = normalize_header(header)
+        if h in allowed:
+            cols.add(idx)
+    return cols
+
+
+def infer_net_columns(headers: Iterable[str]) -> set[int]:
+    cols = set()
+    for idx, header in enumerate(headers, start=1):
+        h = normalize_header(header)
+        if any(blocked in h for blocked in EXCLUDE_NET_SUBSTRINGS):
+            continue
+        if h in {normalize_header(item) for item in EXACT_NET_HEADERS}:
+            cols.add(idx)
+    return cols
+
+
+def infer_pin_columns(headers: Iterable[str], substrings: tuple[str, ...]) -> set[int]:
+    cols = set()
+    for idx, header in enumerate(headers, start=1):
+        h = normalize_header(header)
+        if any(blocked in h for blocked in EXCLUDE_PIN_SUBSTRINGS):
+            continue
+        if any(item in h for item in substrings):
+            cols.add(idx)
+    return cols
+
+
+def infer_generic_pin_columns(headers: Iterable[str]) -> set[int]:
+    cols = set()
+    for idx, header in enumerate(headers, start=1):
+        h = normalize_header(header)
+        if h in {normalize_header(item) for item in GENERIC_PIN_EXACT_HEADERS}:
             cols.add(idx)
     return cols
 
 
 def nonempty(value: object) -> bool:
     return value is not None and str(value).strip() != ""
+
+
+def truthy_marker(value: object) -> bool:
+    return str(value or "").strip().lower() in TRUE_MARKERS
 
 
 def style_sheet(ws) -> None:
@@ -93,28 +164,34 @@ def collect_checks(wb, net_cols: set[int], pin_cols: set[int], skip_sheets: set[
         if ws.title in skip_sheets:
             continue
         headers = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
-        sheet_net_cols = net_cols or infer_columns(headers, "net")
-        sheet_pin_cols = pin_cols or {
-            c
-            for c, header in enumerate(headers, start=1)
-            if "pin" in str(header or "").lower() or "ball" in str(header or "").lower()
-        }
+        sheet_net_cols = net_cols or infer_net_columns(headers)
+        sheet_pin_cols = pin_cols or infer_generic_pin_columns(headers)
+        fpga_pin_cols = pin_cols or infer_pin_columns(headers, FPGA_PIN_SUBSTRINGS)
+        peripheral_pin_cols = pin_cols or infer_pin_columns(headers, PERIPHERAL_PIN_SUBSTRINGS)
+        all_pin_cols = set().union(sheet_pin_cols, fpga_pin_cols, peripheral_pin_cols)
+        source_cols = infer_exact_columns(headers, {normalize_header(item) for item in SOURCE_HEADERS})
+        duplicate_marker_cols = infer_exact_columns(headers, {normalize_header(item) for item in INTENTIONAL_DUPLICATE_HEADERS})
 
         nets: list[tuple[int, int, str]] = []
         pins: list[tuple[int, int, str]] = []
+        duplicate_rows = {
+            row_idx
+            for row_idx in range(2, ws.max_row + 1)
+            if any(truthy_marker(ws.cell(row_idx, c).value) for c in duplicate_marker_cols)
+        }
         for row_idx in range(2, ws.max_row + 1):
             for col_idx in sheet_net_cols:
                 value = ws.cell(row_idx, col_idx).value
                 if nonempty(value):
                     nets.append((row_idx, col_idx, str(value).strip()))
-            for col_idx in sheet_pin_cols:
+            for col_idx in all_pin_cols:
                 value = ws.cell(row_idx, col_idx).value
                 if nonempty(value):
                     pins.append((row_idx, col_idx, str(value).strip()))
 
         net_counts = Counter(value for _, _, value in nets)
         for row_idx, col_idx, value in nets:
-            if net_counts[value] > 1:
+            if net_counts[value] > 1 and row_idx not in duplicate_rows:
                 checks.append([ws.title, "duplicate_net_review", row_idx, get_column_letter(col_idx), value])
 
         pin_counts = Counter(value for _, _, value in pins)
@@ -122,14 +199,40 @@ def collect_checks(wb, net_cols: set[int], pin_cols: set[int], skip_sheets: set[
             if pin_counts[value] > 1:
                 checks.append([ws.title, "duplicate_pin_review", row_idx, get_column_letter(col_idx), value])
 
-        if sheet_net_cols and sheet_pin_cols:
+        if sheet_net_cols and all_pin_cols:
+            if not source_cols:
+                checks.append([ws.title, "missing_source_column_review", 1, "", ""])
             for row_idx in range(2, ws.max_row + 1):
                 any_net = any(nonempty(ws.cell(row_idx, c).value) for c in sheet_net_cols)
-                any_pin = any(nonempty(ws.cell(row_idx, c).value) for c in sheet_pin_cols)
+                any_pin = any(nonempty(ws.cell(row_idx, c).value) for c in all_pin_cols)
                 if any_net and not any_pin:
                     checks.append([ws.title, "net_without_pin_review", row_idx, "", ""])
                 if any_pin and not any_net:
                     checks.append([ws.title, "pin_without_net_review", row_idx, "", ""])
+                if (any_net or any_pin) and source_cols:
+                    source_values = [
+                        str(ws.cell(row_idx, c).value).strip()
+                        for c in source_cols
+                        if nonempty(ws.cell(row_idx, c).value)
+                    ]
+                    if not source_values:
+                        checks.append([ws.title, "unsourced_row_review", row_idx, "", ""])
+                    for value in source_values:
+                        if value.lower() in SOURCE_REVIEW_MARKERS:
+                            checks.append([ws.title, "source_status_review", row_idx, "", value])
+
+        for row_idx in range(2, ws.max_row + 1):
+            any_net = any(nonempty(ws.cell(row_idx, c).value) for c in sheet_net_cols)
+            any_fpga_pin = any(nonempty(ws.cell(row_idx, c).value) for c in fpga_pin_cols)
+            any_peripheral_pin = any(nonempty(ws.cell(row_idx, c).value) for c in peripheral_pin_cols)
+            if any_net and fpga_pin_cols and not any_fpga_pin:
+                checks.append([ws.title, "net_without_fpga_pin_review", row_idx, "", ""])
+            if any_net and peripheral_pin_cols and not any_peripheral_pin:
+                checks.append([ws.title, "net_without_peripheral_pin_review", row_idx, "", ""])
+            if any_fpga_pin and peripheral_pin_cols and not any_peripheral_pin:
+                checks.append([ws.title, "fpga_pin_without_peripheral_pin_review", row_idx, "", ""])
+            if any_peripheral_pin and fpga_pin_cols and not any_fpga_pin:
+                checks.append([ws.title, "peripheral_pin_without_fpga_pin_review", row_idx, "", ""])
     return checks
 
 

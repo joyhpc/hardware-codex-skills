@@ -47,4 +47,5 @@
 
 - If two sources disagree on pin number, package code, topology, or ballout, stop and show the conflict.
 - Do not resolve source conflicts by intuition.
-- If the user wants a provisional output, mark the disputed cells and add a `Requires Confirmation` note.
+- If the user wants a provisional output, mark disputed cells exactly as `conflict` and add a `Requires Confirmation` note.
+- If a required source cannot be found, mark the unsupported cell exactly as `TBD-source`.

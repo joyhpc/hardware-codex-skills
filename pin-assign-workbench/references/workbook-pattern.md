@@ -17,9 +17,9 @@ Use Excel as the review surface. The workbook must let a hardware engineer trace
 - `Schematic_Order`
   - User/CAD symbol order. Preserve left/right/top/bottom order exactly.
 - `Pin_Net_Output`
-  - Final schematic-ready table: pin number, pin name, net name, group, note.
+  - Final schematic-ready table: FPGA pin number, pin name, net name, group, peripheral pin/ball, source IDs, intentional duplicate marker, check status, and note.
 - `Offpage_By_Class`
-  - Copy/paste columns grouped by signal class.
+  - Copy/paste columns grouped by signal class, with source IDs preserved.
 - `Checks`
   - Mechanical checks: duplicate pins, duplicate nets where unexpected, blank pin/net mismatches, source conflicts, unresolved assumptions.
 - `Review_Notes`
@@ -39,7 +39,8 @@ For final pin/net sheets include, as applicable:
 - `Pin Name`
 - `Net Name`
 - `Connection Class`
-- `Source`
+- `Source IDs`
+- `Intentional Duplicate Marker`
 - `Note`
 
 ## Naming
@@ -48,6 +49,7 @@ For final pin/net sheets include, as applicable:
 - Avoid brackets, slashes, spaces, and punctuation in copy/paste net names for OrCAD.
 - Use stable prefixes for multiple identical devices, such as `LP5_U0_` and `LP5_U1_`.
 - Make local-only nets explicit, such as `U0_ZQ_240R_TO_VDDQ`.
+- Mark intentionally repeated nets with `Y` in `Intentional Duplicate Marker` so mechanical duplicate checks stay useful.
 
 ## Workbook Notes
 

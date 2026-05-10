@@ -13,15 +13,17 @@ Capture:
 
 If the user's pasted symbol order conflicts with the official pinout, preserve the official pinout in the final table and add a corrections sheet.
 
-## OrCAD Off-Page Connectors
+## Cadence Schematic Connectors
 
-For OrCAD Capture:
+For OrCAD Capture or Cadence Capture CIS:
 
 - Use one net name per connector `Name` property.
 - Generate one-column plain text lists for Property Editor paste.
 - Generate grouped lists by signal class so connector columns stay tidy.
 - Leave non-connected or unused pins blank. Do not create off-page connectors for them.
 - Use separate lists for local-only and FPGA-only nets.
+
+For Allegro Design Entry HDL / Concept HDL, verify the project's connector or port paste workflow before promising a direct batch-paste format. Do not assume it is identical to OrCAD Capture.
 
 Recommended group columns:
 
