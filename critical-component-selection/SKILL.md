@@ -149,7 +149,7 @@ When working inside an existing workspace:
 4. Suggest adding a pointer to `CONTEXT_INDEX.md` after the decision record exists.
 5. Do not store real project facts, vendor-specific cheatsheets, or concrete part numbers in this skill.
 6. Follow `../SCHEMA.md` for saved `decision-record` and `selection-map` frontmatter so downstream agents can route on `schema_version`, `schema_kind`, `record_id`, `status`, `primary_candidate`, `backup_candidates`, `freeze_blockers`, `related_records`, `evidence_freshness_window_days`, and `external_validation_skills_needed` without reparsing prose.
-7. Run `../tools/scripts/lint_record.py <record.md>` before treating a saved record as handoff-ready when a local Python runtime is available. `scripts/lint_decision_record.py` remains only as a compatibility wrapper.
+7. Run `../tools/scripts/lint_record.py <record.md>` before treating a saved record as handoff-ready when a local Python runtime is available. The repo-level linter is canonical; `scripts/lint_decision_record.py` is only an old-path shim.
 
 ## References
 
@@ -168,7 +168,7 @@ Load only the schema or template needed for the active phase:
 ## Bundled Tools
 
 - `../tools/scripts/lint_record.py`: mechanically checks cross-skill record frontmatter, kind-specific fields, status/class table cells, evidence aging, JSON output, and `--stamp`. It does not parse datasheets, query suppliers, scrape PCNs, or make engineering judgments.
-- `scripts/lint_decision_record.py`: compatibility wrapper for the repo-level linter.
+- `scripts/lint_decision_record.py`: old-path shim for callers that still reference the skill-local linter.
 
 ## Anti-Patterns
 

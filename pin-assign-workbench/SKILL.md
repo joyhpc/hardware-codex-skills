@@ -58,7 +58,7 @@ Search user-provided files and local knowledge bases first. Browse only for miss
 6. **Classify nets.** Separate data groups, clocks/strobes, address/control, reset, local-only pins, FPGA-only pins, power/ground, NC, and RFU.
 7. **Generate Excel.** Use `references/workbook-pattern.md` for sheet structure. Use `assets/pin-assign-template.xlsx` when starting a new workbook.
 8. **Validate.** Apply `references/validation-checklist.md`. Use `scripts/format_pin_workbook.py` only for deterministic formatting/checking; do not let scripts make engineering judgments.
-9. **Create the schema sidecar when the workbook is a project artifact.** Use `references/pin-assign-record-template.md` to write a Markdown sidecar with `schema_kind: pin-assign-workbench`, `workbook_path`, `source_records`, and `related_records` so the repo-level schema tools can route dependencies.
+9. **Create the schema sidecar when the workbook is a project artifact.** Use `references/pin-assign-record-template.md` to write a Markdown sidecar with `schema_kind: pin-assign-workbench`, `workbook_path`, `source_records`, and `related_records` so the repo-level schema tools can route dependencies. In schema v1, mirror each source dependency in both `source_records` and `related_records`; future schema versions may collapse this duplication.
 10. **Explain the result.** Add a source/workflow note in the workbook and summarize assumptions, conflicts, and required FAE/Quartus/SI/layout confirmations.
 
 ## Source Discipline

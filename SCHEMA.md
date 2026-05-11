@@ -1,129 +1,133 @@
 # Record Schema (v1)
 
-This document defines the **machine-readable contract** shared across all skills in this repository. Each skill produces Markdown records with a YAML frontmatter envelope; this schema specifies the envelope, the per-kind extensions, and the lint that gates them.
+This document defines the machine-readable contract shared across skills in this repository. Skills produce Markdown records with YAML frontmatter; the schema defines that envelope, the kind-specific extensions, and the lint/DAG behavior that makes records usable by downstream tools.
 
-The goal is a closed loop: skill output → frontmatter envelope → lint → JSON → DAG builder → downstream tools (`hwpm`, meta-agent, dashboards).
+The loop is:
 
-## Table of Contents
-
-- [Why a Schema Layer](#why-a-schema-layer)
-- [Three-Layer Model](#three-layer-model)
-- [Universal Envelope](#universal-envelope)
-- [Schema Kinds](#schema-kinds)
-- [Closed Vocabularies](#closed-vocabularies)
-- [Cross-Record References](#cross-record-references)
-- [Evidence Aging](#evidence-aging)
-- [Lint Rules](#lint-rules)
-- [Lint Output Formats](#lint-output-formats)
-- [DAG Builder](#dag-builder)
-- [Versioning](#versioning)
-- [Composition With Meta-Agent](#composition-with-meta-agent)
-
-## Why a Schema Layer
-
-A skill record serves three audiences with conflicting needs:
-
-1. **Author** (LLM or engineer) writes narrative reasoning — Markdown is right.
-2. **Reviewer** (engineer) scans tables, candidate classes, and freeze blockers — Markdown tables are right.
-3. **Downstream agent** (machine) filters, routes, and tracks dependencies — YAML/JSON is right.
-
-A single representation cannot satisfy all three. The fix is layered representation in one file with clear ownership per layer.
-
-## Three-Layer Model
-
-```
-┌──────────────────────────────────────────────────────────┐
-│  Record (single .md file)                                │
-│                                                          │
-│   Layer 1: Frontmatter (YAML)                            │
-│     - envelope: identity, lifecycle, graph edges         │
-│     - kind extension: kind-specific routing fields       │
-│     - consumed by: meta-agent, lint, DAG builder, grep   │
-│                                                          │
-│   Layer 2: Body (Markdown)                               │
-│     - tables (candidates, evidence, risks, gates)        │
-│     - rationale prose                                    │
-│     - authored by: skill workflow                        │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-                       │
-                       ▼
-   Layer 3: Lint (validation gate)
-     - envelope rules           (FM*, EN*)
-     - kind-specific rules      (DR*, SM*, PA*)
-     - cross-field consistency  (CR*)
-     - body table vocabulary    (BD*)
-     - emits human or JSON output
-     - stamps `last_lint_pass` on success
-                       │
-                       ▼
-   Layer 4: DAG Builder (cross-record graph)
-     - walks record dirs
-     - builds milestone/task graph from blockers + supersedes + related_records
-     - outputs JSON consumable by hwpm CPM, dashboards, meta-agent
+```text
+skill output -> frontmatter envelope -> lint -> JSON -> DAG builder -> downstream tools
 ```
 
-Principle: **frontmatter is for routing, body is for authoring, lint is for integrity, DAG builder is for cross-record reasoning.** Each layer has one job.
+Downstream tools may include `hwpm`, a meta-agent, CI, or dashboards.
+
+## Why A Schema Layer
+
+A record has three audiences:
+
+1. Author: LLM or engineer writes rationale and tradeoffs. Markdown is the right surface.
+2. Reviewer: engineer scans candidates, evidence, risks, and blockers. Markdown tables are the right surface.
+3. Downstream agent: machine filters, routes, and tracks dependencies. YAML/JSON is the right surface.
+
+One representation cannot optimize for all three. The repository therefore uses a four-layer model.
+
+## Four-Layer Model
+
+```text
+Record (.md)
+|-- Layer 1: Frontmatter (YAML)
+|   |-- universal envelope: identity, lifecycle, graph edges
+|   |-- kind extension: routing and status fields
+|   `-- consumed by lint, DAG builder, meta-agent, grep
+|
+`-- Layer 2: Body (Markdown)
+    |-- source inventory, evidence matrix, gates, risks
+    `-- rationale and handoff prose
+
+Layer 3: Lint
+|-- envelope rules (FM*, EN*)
+|-- kind-specific rules (CR*, DR*, SM*, PA*)
+|-- body table rules (BD*)
+`-- human or JSON output
+
+Layer 4: DAG Builder
+|-- walks record directories
+|-- builds record, blocker, related-record, and supersession graph
+`-- emits JSON, summary, or Mermaid
+```
+
+Principle: frontmatter is for routing, body is for authoring, lint is for integrity, and the DAG builder is for cross-record reasoning.
+
+Lint is not an engineering oracle. It catches structural drift and obvious empty-shell records; dated evidence and owner review still decide truth.
 
 ## Universal Envelope
 
-Every record, regardless of kind, must include these fields. The lint validates the envelope before dispatching to kind-specific rules.
+Every record must include these fields before kind-specific validation runs:
 
 ```yaml
 ---
-schema_version: 1                            # required, integer
-schema_kind: decision-record                 # required, see "Schema Kinds"
-record_id: 20260510-mainboard-r3-lpddr5-x16  # required, YYYYMMDD-<lowercase-slug>
-project: mainboard-r3                        # required
-revision: 1                                  # required, integer >= 1
+schema_version: 1
+schema_kind: decision-record
+record_id: 20260510-mainboard-r3-lpddr5-x16
+project: mainboard-r3
+revision: 1
 
-status: selected-not-frozen                  # required, enum is kind-specific
-created_date: 2026-05-10                     # required, ISO date
-review_date: 2026-06-15                      # optional
-maintainer: pure                             # optional
+status: selected-not-frozen
+created_date: 2026-05-10
+review_date: 2026-06-15
+maintainer: example-owner
 
-# Decision history graph
-supersedes: null                             # record_id of older version, or null
-superseded_by: null                          # set when status=superseded
+supersedes: null
+superseded_by: null
 
-# Cross-record links
-related_records: []                          # see "Cross-Record References"
+related_records: []
 
-# Evidence policy (optional, kind-aware default)
-evidence_freshness_window_days: 60           # body evidence rows older than this raise BD002
-
-# Audit
-last_lint_pass: null                         # set by `lint --stamp`
+evidence_freshness_window_days: 60
+last_lint_pass: null
 ---
 ```
 
-**Backward compatibility**: when `schema_kind` is absent, lint defaults to `decision-record` and emits warning `FM010`. New records must set `schema_kind` explicitly.
+Required universal fields:
+
+| Field | Rule |
+|---|---|
+| `schema_version` | Required integer. v1 is currently supported. |
+| `schema_kind` | Required for new records. Missing value defaults to `decision-record` with warning `FM010`. |
+| `record_id` | Required. Must match `YYYYMMDD-<lowercase-slug>`. |
+| `project` | Required project identifier. |
+| `revision` | Required integer. `revision > 1` requires `supersedes`. |
+| `status` | Required. Enum depends on `schema_kind`. |
+| `created_date` | Required ISO date. |
+
+Optional universal fields:
+
+| Field | Meaning |
+|---|---|
+| `review_date` | Next planned review date. Must not precede `created_date`. |
+| `maintainer` | Record owner or maintainer. |
+| `supersedes` | Prior record id replaced by this record. |
+| `superseded_by` | Later record id that replaces this record. Required when `status: superseded`. |
+| `related_records` | Cross-record graph links. |
+| `evidence_freshness_window_days` | Record-level evidence aging window. Default is 60 days. |
+| `last_lint_pass` | Optional audit stamp written by `--stamp` on a successful lint run. |
 
 ## Schema Kinds
 
-Three kinds are currently defined. Each kind has its own status enum, required extension fields, and body table rules.
-
-| `schema_kind` | Skill | Purpose |
-|---|---|---|
-| `decision-record` | `critical-component-selection` | Freeze-grade component decision artifact |
-| `selection-map` | `critical-component-selection` | Sidecar navigation map for large selections |
-| `pin-assign-workbench` | `pin-assign-workbench` | Sidecar metadata + handoff for the .xlsx workbook |
-
 ### `decision-record`
 
-Status enum: `draft | shortlisted | selected-not-frozen | frozen | blocked | superseded`
+Produced by `critical-component-selection`.
 
-Extension fields:
+Purpose: freeze-grade component decision artifact.
+
+Status enum:
+
+```text
+draft | shortlisted | selected-not-frozen | frozen | blocked | superseded
+```
+
+Kind extension:
 
 ```yaml
 primary_candidate:
   pn: EXAMPLE-LPDDR5-X16-A
   manufacturer: example-corp
-  evidence_status: confirmed                 # closed enum, see below
+  evidence_status: confirmed
 
-backup_candidates: []
+backup_candidates:
+  - pn: EXAMPLE-LPDDR5-X16-B
+    manufacturer: alt-corp
+    evidence_status: TBD-evidence
 
-freeze_blockers:                             # empty iff status=frozen
+freeze_blockers:
   - id: fb-pcn-window
     field: lifecycle
     needed_evidence: pcn-or-vendor-roadmap-statement
@@ -138,61 +142,74 @@ evidence_root: hardware-projects/prj/<project>/evidence/<component>/
 risk_register: ./risks.md
 ```
 
+Core rule: `status: frozen` requires no freeze blockers, no external validation still needed, and body evidence/gate tables that do not contain unresolved gate statuses.
+
 ### `selection-map`
 
-Sidecar artifact when a decision involves many sources, candidate routes, or supplier threads. Always paired 1:1 with a decision record via `related_records`.
+Produced by `critical-component-selection`.
 
-Status enum: `active | stale | closed`
+Purpose: sidecar navigation map for large selections with many candidate routes, source threads, or validation paths.
 
-Extension fields:
+Status enum:
 
-```yaml
-decision_record: 20260510-mainboard-r3-lpddr5-x16   # required reference
-candidate_routes_count: 7                            # informational
-open_evidence_count: 3                               # decremented as evidence arrives
-tool_validation_open_count: 2                       # decremented as artifacts produced
+```text
+active | stale | closed
 ```
 
-A selection map is **expected** when any of:
+Kind extension:
 
-1. `len(freeze_blockers) >= 3` on the decision record, OR
-2. `len(backup_candidates) >= 3` on the decision record, OR
-3. The body source inventory has 10+ rows.
+```yaml
+decision_record: 20260510-mainboard-r3-lpddr5-x16
+candidate_routes_count: 7
+open_evidence_count: 3
+tool_validation_open_count: 2
+```
 
-Lint warning `SM010` fires if the heuristic recommends a map but `related_records` does not point to one.
+Selection map heuristic:
+
+- expected when `len(freeze_blockers) >= 3`
+- expected when `len(backup_candidates) >= 3`
+- expected when body source inventory has 10 or more rows
+
+Lint warning `SM010` fires when the heuristic recommends a map but no `selection-map` related record is referenced.
 
 ### `pin-assign-workbench`
 
-Markdown sidecar carrying envelope metadata and handoff notes for the actual `.xlsx` workbook. The workbook itself is the deliverable; this file is what the schema layer can validate.
+Produced by `pin-assign-workbench`.
 
-Status enum: `draft | source-locked | mechanical-checked | reviewed | exported`
+Purpose: sidecar metadata for the `.xlsx` workbook. The workbook is the primary deliverable; the Markdown sidecar exists so schema tools can route dependencies.
 
-Extension fields:
+Status enum:
+
+```text
+draft | source-locked | mechanical-checked | reviewed | exported
+```
+
+Kind extension:
 
 ```yaml
-workbook_path: ./mainboard-r3-fpga-mem-pinout.xlsx   # required, relative
-schematic_target: orcad                              # orcad | cadence-cis | allegro-de-hdl
-mechanical_check_status: pass                        # pass | blocked | TBD-evidence | N-A
+workbook_path: ./mainboard-r3-fpga-mem-pinout.xlsx
+schematic_target: orcad
+mechanical_check_status: pass
 
-source_records:                                      # decision records this workbook implements
+source_records:
   - kind: decision-record
     id: 20260510-mainboard-r3-lpddr5-x16
     role: source
-  - kind: decision-record
-    id: 20260420-mainboard-r3-fpga
-    role: source
 
-unresolved_source_conflicts: []                      # empty for status=mechanical-checked or beyond
+unresolved_source_conflicts: []
 ```
+
+For v1, `source_records` is retained because existing examples and tools use it. Prefer also listing the same dependencies in `related_records` with `role: source` so the graph remains explicit. Future schema versions may collapse this duplication.
 
 ## Closed Vocabularies
 
-These are enforced exactly. Lint rejects any value outside the listed set.
+Lint rejects values outside these enums.
 
 | Vocabulary | Values |
 |---|---|
-| `evidence_status` (per-field evidence rows) | `confirmed`, `TBD-evidence`, `conflict`, `N-A`, `stale-evidence` |
-| `gate_status` (freeze checklist gates) | `pass`, `blocked`, `TBD-evidence`, `N-A` |
+| `evidence_status` | `confirmed`, `TBD-evidence`, `conflict`, `N-A`, `stale-evidence` |
+| gate status in body tables | `pass`, `blocked`, `TBD-evidence`, `N-A` |
 | `decision-record.status` | `draft`, `shortlisted`, `selected-not-frozen`, `frozen`, `blocked`, `superseded` |
 | `selection-map.status` | `active`, `stale`, `closed` |
 | `pin-assign-workbench.status` | `draft`, `source-locked`, `mechanical-checked`, `reviewed`, `exported` |
@@ -200,11 +217,11 @@ These are enforced exactly. Lint rejects any value outside the listed set.
 | `related_records[*].role` | `sidecar`, `source`, `derived`, `superseded` |
 | `related_records[*].kind` | any registered `schema_kind` |
 
-`stale-evidence` is added to evidence_status to mark rows that the record author has reclassified after evidence freshness review. The lint scanner does not rewrite records; it warns on stale confirmed rows, or reports them as errors when `--strict-aging` is set.
+`stale-evidence` marks rows the author or reviewer has reclassified after evidence freshness review. Lint does not rewrite rows; it warns on old confirmed rows, or reports them as errors when `--strict-aging` is set.
 
 ## Cross-Record References
 
-Records link to each other through `related_records`. Each entry is `(kind, id, role)`:
+Records link through `related_records`:
 
 ```yaml
 related_records:
@@ -218,81 +235,102 @@ related_records:
 
 Roles:
 
-- `sidecar`: 1:1 detail artifact (selection map ↔ decision record).
-- `source`: this record depends on the referenced one (pin workbook depends on multiple decisions).
-- `derived`: the referenced record was created from this one.
-- `superseded`: kept for legacy reference; canonical chain is `supersedes`/`superseded_by`.
+| Role | Meaning |
+|---|---|
+| `sidecar` | Referenced record is a detail artifact for this record. |
+| `source` | This record depends on the referenced record. |
+| `derived` | Referenced record was created from this one. |
+| `superseded` | Legacy role. Prefer top-level `supersedes` / `superseded_by`. |
 
-The DAG builder follows `related_records`, `supersedes`, `superseded_by`, and `freeze_blockers` to build the cross-record graph.
+The DAG builder follows `related_records`, `supersedes`, `superseded_by`, and `freeze_blockers`.
 
 ## Evidence Aging
 
-Lint rule **BD002** scans body evidence-matrix tables and compares the `Evidence date` cell against `created_date - evidence_freshness_window_days`. Behavior:
+Rule `BD002` scans body tables whose headers include both `Status` and `Evidence date`.
 
-- Default window: 60 days.
-- Settable per-record via frontmatter `evidence_freshness_window_days`.
-- Confirmed rows past the window emit warning by default.
-- `--strict-aging` flag promotes the warning to an error.
-- Lint never mutates body table statuses; changing `confirmed` to `stale-evidence` is an explicit author/reviewer action.
+Behavior:
 
-Evidence dates are scanned only in tables whose header includes both `Status` and `Evidence date` columns.
+- Default window is 60 days.
+- Override per record with `evidence_freshness_window_days`.
+- Confirmed rows older than the window emit warning by default.
+- `--strict-aging` promotes stale confirmed evidence warnings to errors.
+- Lint never mutates body table statuses.
+
+Rule `BD003` rejects confirmed evidence rows with empty or invalid `Evidence date`.
 
 ## Lint Rules
 
-Rules grouped by code prefix:
+Rule prefixes:
 
 | Prefix | Scope |
 |---|---|
-| `FM` | Frontmatter envelope (universal across kinds) |
+| `FM` | Frontmatter envelope |
 | `EN` | Envelope cross-field consistency |
-| `CR` | Decision-record specific consistency |
-| `DR` | Decision-record extension validation |
-| `SM` | Selection-map extension and consistency |
-| `PA` | Pin-assign-workbench extension and consistency |
-| `BD` | Body table vocabulary and aging |
+| `CR` | Decision-record consistency |
+| `DR` | Decision-record extension fields |
+| `SM` | Selection-map fields and heuristics |
+| `PA` | Pin-assign-workbench fields |
+| `BD` | Body table vocabulary and evidence aging |
 
 Selected rules:
 
 | Rule | Level | Description |
 |---|---|---|
-| FM001 | error | Required envelope field missing |
-| FM002 | error | `record_id` does not match `YYYYMMDD-<slug>` |
-| FM010 | warning | `schema_kind` not set; defaulting to `decision-record` |
-| FM999 | error | Unsupported `schema_version` |
-| EN001 | error | `revision > 1` requires `supersedes` non-null |
-| EN002 | error | `review_date` precedes `created_date` |
-| EN003 | error | `superseded_by` set but `status != superseded` (or vice versa) |
-| CR001 | error | `status: frozen` but `freeze_blockers` non-empty |
-| CR002 | error | `status: selected-not-frozen` with empty `freeze_blockers` |
-| CR004 | error/warning | `freeze_blocker.due_date` in the past; error for `selected-not-frozen`, warning for earlier non-frozen states |
-| CR005 | error | `status: frozen` with non-empty `external_validation_skills_needed` |
-| CR006 | error | `status: frozen` without minimum Source Inventory and passing gate evidence in body tables |
-| CR007 | error | Body gate table has unresolved statuses but frontmatter has no `freeze_blockers` |
-| CR008 | error | `primary_candidate.evidence_status: confirmed` without a matching dated Evidence Matrix row |
-| DR001 | error | `evidence_status` not in closed enum |
-| SM001 | error | `selection-map` missing `decision_record` reference |
-| SM010 | warning | Selection map heuristic recommends one, none referenced |
-| PA001 | error | `workbook_path` does not exist (when checked with `--check-paths`) |
-| PA002 | error | `status: mechanical-checked` requires `mechanical_check_status: pass` |
-| PA003 | error | `status: exported` with non-empty `unresolved_source_conflicts` |
-| BD001 | error | Status cell uses value outside allowed enum union |
-| BD002 | warning | Evidence row date older than `evidence_freshness_window_days` |
-| BD003 | error | Confirmed evidence row has an empty or invalid `Evidence date` |
+| `FM001` | error | Required envelope field missing. |
+| `FM002` | error | `record_id` does not match `YYYYMMDD-<slug>`. |
+| `FM003` | error | `status` is outside the enum for this kind. |
+| `FM005` | error | Date field is not ISO `YYYY-MM-DD`. |
+| `FM010` | warning | `schema_kind` missing; defaults to `decision-record`. |
+| `FM997` | error | Unknown `schema_kind`. |
+| `FM999` | error | Unsupported `schema_version`. |
+| `EN001` | error | `revision > 1` requires `supersedes`. |
+| `EN002` | error | `review_date` precedes `created_date`. |
+| `EN003` | error | `superseded_by` and `status: superseded` are inconsistent. |
+| `EN010` | error | `related_records` is not a list of mappings. |
+| `EN011` | error | Related record kind is unknown. |
+| `EN012` | error | Related record id does not match id pattern. |
+| `EN013` | error | Related record role is outside enum. |
+| `CR001` | error | `status: frozen` but `freeze_blockers` is non-empty. |
+| `CR002` | error | `status: selected-not-frozen` but `freeze_blockers` is empty. |
+| `CR004` | error/warning | Blocker `due_date` is in the past; error for `selected-not-frozen`, warning for earlier non-frozen states. |
+| `CR005` | error | `status: frozen` with non-empty `external_validation_skills_needed`. |
+| `CR006` | error | `status: frozen` without minimum Source Inventory and passing gate evidence in body. |
+| `CR007` | error | Body gate table has unresolved statuses but frontmatter has no `freeze_blockers`. |
+| `CR008` | error | Confirmed primary candidate lacks a matching dated Evidence Matrix row. |
+| `DR001` | error | Candidate `evidence_status` is outside enum. |
+| `SM001` | error | `selection-map` missing `decision_record`. |
+| `SM010` | warning | Selection map recommended by heuristic but not referenced. |
+| `PA000` | error | `pin-assign-workbench` missing `workbook_path`. |
+| `PA001` | error | `workbook_path` does not exist when checked with `--check-paths`. |
+| `PA002` | error | `mechanical-checked` or later requires `mechanical_check_status: pass`. |
+| `PA003` | error | `status: exported` with unresolved source conflicts. |
+| `PA010` | error | Unsupported `schematic_target`. |
+| `PA011` | error | `mechanical_check_status` is outside enum. |
+| `PA020` | warning | Pin assignment sidecar has no `source_records`. |
+| `BD001` | error | Body `Status` cell uses value outside allowed union. |
+| `BD002` | warning | Confirmed evidence row date is older than freshness window. |
+| `BD003` | error | Confirmed evidence row has empty or invalid `Evidence date`. |
 
-## Lint Output Formats
+## Lint CLI
 
 ```bash
-# Human-readable (default)
+# Human-readable output
 python tools/scripts/lint_record.py path/to/record.md
 
-# Machine-readable JSON for CI / meta-agent
-python tools/scripts/lint_record.py path/to/record.md --format json
+# Directory scan
+python tools/scripts/lint_record.py path/to/records/
 
-# Strict mode: warnings become errors
-python tools/scripts/lint_record.py path/to/record.md --strict
+# JSON for CI or agents
+python tools/scripts/lint_record.py path/to/records/ --format json
 
-# Strict aging: BD002 warnings become errors; records are not rewritten
-python tools/scripts/lint_record.py path/to/record.md --strict-aging
+# Treat warnings as failures
+python tools/scripts/lint_record.py path/to/records/ --strict
+
+# Treat stale confirmed evidence as failure
+python tools/scripts/lint_record.py path/to/records/ --strict-aging
+
+# Verify referenced paths where supported, such as workbook_path
+python tools/scripts/lint_record.py path/to/record.md --check-paths
 
 # Stamp last_lint_pass on success
 python tools/scripts/lint_record.py path/to/record.md --stamp
@@ -310,9 +348,12 @@ JSON output shape:
       "record_id": "20260510-mainboard-r3-lpddr5-x16",
       "ok": false,
       "issues": [
-        {"rule": "CR001", "level": "error",
-         "location": "frontmatter:status",
-         "message": "status=frozen requires empty freeze_blockers; 2 blocker(s) present"}
+        {
+          "rule": "CR001",
+          "level": "error",
+          "location": "frontmatter:status",
+          "message": "status=frozen requires empty freeze_blockers; 2 blocker(s) present"
+        }
       ]
     }
   ],
@@ -322,26 +363,22 @@ JSON output shape:
 
 ## DAG Builder
 
-`tools/scripts/build_blocker_dag.py` walks a directory, parses every record with valid frontmatter, and builds the cross-record graph for downstream consumption.
+`tools/scripts/build_blocker_dag.py` walks records and emits graph data.
 
 ```bash
-# Walk a project's decisions and emit JSON
-python tools/scripts/build_blocker_dag.py hardware-projects/prj/mainboard-r3/decisions/ \
-    --format json > mainboard-r3-dag.json
-
-# Mermaid for human review
-python tools/scripts/build_blocker_dag.py hardware-projects/prj/mainboard-r3/decisions/ \
-    --format mermaid > mainboard-r3-dag.mmd
+python tools/scripts/build_blocker_dag.py hardware-projects/prj/mainboard-r3/decisions/ --format summary
+python tools/scripts/build_blocker_dag.py hardware-projects/prj/mainboard-r3/decisions/ --format json > dag.json
+python tools/scripts/build_blocker_dag.py hardware-projects/prj/mainboard-r3/decisions/ --format mermaid > dag.mmd
 ```
 
-JSON shape (DAG schema_version 1):
+JSON shape:
 
 ```json
 {
   "schema_version": 1,
   "kind": "blocker-dag",
   "generated_at": "2026-05-10T14:32:00+08:00",
-  "scope": "hardware-projects/prj/mainboard-r3/decisions/",
+  "scope": "hardware-projects/prj/mainboard-r3/decisions",
   "milestones": [
     {
       "id": "20260510-mainboard-r3-lpddr5-x16",
@@ -350,49 +387,71 @@ JSON shape (DAG schema_version 1):
       "status": "selected-not-frozen",
       "freeze_target_date": "2026-07-01",
       "tasks": [
-        {"id": "fb-pcn-window", "owner": "procurement",
-         "due_date": "2026-05-25", "field": "lifecycle"}
+        {
+          "id": "fb-pcn-window",
+          "owner": "procurement",
+          "due_date": "2026-05-25",
+          "field": "lifecycle"
+        }
       ],
       "external_dependencies": [
-        {"skill": "si-channel-budget", "reason": "6400mtps-channel-loss-margin"}
+        {
+          "skill": "si-channel-budget",
+          "reason": "6400mtps-channel-loss-margin"
+        }
       ]
     }
   ],
   "edges": [
-    {"from": "20260510-mainboard-r3-lpddr5-x16",
-     "to": "20260520-mainboard-r3-lpddr5-pinout",
-     "kind": "derived"},
-    {"from": "20260510-mainboard-r3-lpddr5-x16",
-     "to": "20260510-mainboard-r3-lpddr5-selection-map",
-     "kind": "sidecar"}
+    {
+      "from": "20260510-mainboard-r3-lpddr5-x16",
+      "to": "20260520-mainboard-r3-lpddr5-pinout",
+      "kind": "derived"
+    }
   ],
+  "unresolved_edge_targets": [],
   "errors": []
 }
 ```
 
-The CPM critical-path computation belongs in `hwpm`; this builder produces the input data only.
+CPM critical-path computation belongs outside this repo, typically in `hwpm`.
 
 ## Versioning
 
-`schema_version: 1` covers the universal envelope, all three kinds, evidence aging, and cross-record refs as documented here. Future breaking changes increment the version and require a migration script under `tools/scripts/migrate_v<N>_to_v<N+1>.py`.
+`schema_version: 1` covers:
 
-The lint validates `schema_version` first; unknown versions exit code 2 (parse failure) so CI routes to the migration step rather than treating it as a content failure.
+- universal envelope
+- three current schema kinds
+- body status vocabulary scanning
+- evidence aging
+- cross-record graph output
+
+Breaking changes must increment `schema_version` and should include a migration script under `tools/scripts/migrate_v<N>_to_v<N+1>.py`.
+
+Unknown schema versions fail early with exit code 2 so CI can route to migration instead of treating the record as a normal content failure.
 
 ## Composition With Meta-Agent
 
-The closed loop:
+The intended division of labor:
 
+```text
+LLM skill:
+  - collect and reconcile evidence
+  - write/update record body
+  - explain rationale and next actions
+
+lint:
+  - reject malformed schema
+  - reject invalid status vocabulary
+  - reject obvious empty-shell freeze patterns
+
+DAG builder:
+  - expose records, blockers, supersession, and related artifacts as graph data
+
+meta-agent / hwpm:
+  - route work
+  - compute project scheduling
+  - wait on blockers and validation artifacts
 ```
-1. Skill workflow (LLM)              writes Markdown record with frontmatter
-2. lint_record.py --strict --stamp   gates on schema and consistency
-3. build_blocker_dag.py              walks records, emits JSON
-4. hwpm / meta-agent / dashboard     consume JSON, compute CPM, route tasks
-5. external skill (si, emif, ...)    runs validation, produces artifact
-6. Skill workflow updates body       evidence row goes confirmed
-7. lint_record.py                    re-validates structure before status -> frozen
-8. build_blocker_dag.py rebuilds     downstream tools see updated graph
-```
 
-Steps 2-4 and 7-8 require no LLM. The LLM is constrained to steps 1 and 6, where its strengths (synthesis, narrative, judgment under ambiguity) actually pay off. Routing, filtering, dependency tracking, and structural freeze checks are deterministic; engineering truth still comes from dated evidence and owner review.
-
-This is the architectural payoff: the schema turns each skill into an addressable node in a DAG, and the meta-agent becomes a graph walker rather than an LLM-in-the-loop traffic cop.
+This keeps LLMs at ambiguity boundaries and puts machine-checkable behavior in deterministic tools.
