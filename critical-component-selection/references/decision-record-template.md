@@ -122,6 +122,8 @@ Record why a route was excluded and what evidence would reopen it.
 > **Body rules**:
 > - `Status` cells must use `confirmed`, `TBD-evidence`, `conflict`, `N-A`, or `stale-evidence`. Lint rule **BD001** rejects others.
 > - When both `Status` and `Evidence date` columns exist, lint rule **BD002** flags `confirmed` rows whose date is older than `evidence_freshness_window_days` before `created_date`.
+> - Confirmed evidence rows must carry a non-empty ISO `Evidence date`; lint rule **BD003** rejects blank or invalid dates.
+> - If `primary_candidate.evidence_status` is `confirmed`, at least one row for that PN must have `Status=confirmed`, an `Evidence source`, and a valid `Evidence date`; lint rule **CR008** rejects empty-shell confirmation.
 
 ## Risk Summary
 
@@ -146,6 +148,8 @@ For each `freeze_blockers[]` entry in the frontmatter, expand here. Keep IDs (`f
 ## External Validation Handoff
 
 For each `external_validation_skills_needed[]`, state expected artifact and which `freeze_blocker` it closes.
+
+For `status: frozen`, `external_validation_skills_needed` must be empty, `freeze_blockers` must be empty, Source Inventory must contain at least one row, and hard/verification gate tables must not contain unresolved gate statuses.
 
 ## Signoff
 

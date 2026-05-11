@@ -67,20 +67,22 @@ Two scripts live at the repo root and operate across skills:
 
 These tools are not skills. They are repo-level developer tooling that enforces and consumes the schema contract.
 
+The lint gate is intentionally structural. It catches schema drift, stale evidence dates, unresolved gate rows with no frontmatter blocker, and empty-shell `frozen` records, but it does not prove that a vendor claim, SI margin, quote, PCN, or validation artifact is true.
+
 The closed loop:
 
 ```text
 1. Skill workflow (LLM)              writes Markdown record with frontmatter
-2. lint_record.py --strict --stamp   gates on schema and consistency
+2. lint_record.py --strict --stamp   gates on schema and structural consistency
 3. build_blocker_dag.py              walks records, emits JSON
 4. hwpm / meta-agent / dashboard     consume JSON, compute CPM, route tasks
 5. external skill (si, emif, ...)    runs validation, produces artifact
 6. Skill workflow updates body       evidence row goes confirmed
-7. lint_record.py                    re-validates; if CR001 passes, status -> frozen
+7. lint_record.py                    re-validates before status -> frozen
 8. build_blocker_dag.py rebuilds     downstream tools see updated graph
 ```
 
-Steps 2-4 and 7-8 require no LLM. The LLM is constrained to steps 1 and 6, where its strengths actually pay off. See [`SCHEMA.md`](./SCHEMA.md) for the full rule reference, JSON output shapes, and DAG schema.
+Steps 2-4 and 7-8 require no LLM. The LLM is constrained to steps 1 and 6, where its strengths actually pay off. Lint is a structural and anti-shell gate, not proof that an engineering claim is true; truth still comes from dated sources, validation artifacts, and owner review. See [`SCHEMA.md`](./SCHEMA.md) for the full rule reference, JSON output shapes, and DAG schema.
 
 ## Skill Activation Policy
 

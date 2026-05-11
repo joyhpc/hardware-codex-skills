@@ -53,6 +53,43 @@ freeze_blockers:
 | lifecycle | TBD-evidence |
 """
 
+GOOD_FROZEN_DECISION = """---
+schema_version: 1
+schema_kind: decision-record
+record_id: 20260510-frozen-component
+project: test
+revision: 1
+status: frozen
+created_date: 2026-05-10
+primary_candidate:
+  pn: EXAMPLE-PN-A
+  manufacturer: example
+  evidence_status: confirmed
+freeze_blockers: []
+external_validation_skills_needed: []
+---
+
+# Body
+
+## Hard Gate Screen
+
+| Gate | Status |
+|---|---|
+| Exact orderable identity | pass |
+
+## Source Inventory
+
+| Source ID | Type | Title | Date | Path / URL | Trust level |
+|---|---|---|---|---|---|
+| S1 | datasheet | Example datasheet | 2026-05-09 | evidence/example.pdf | primary |
+
+## Evidence Matrix
+
+| Field | Candidate | Evidence source | Evidence date | Status |
+|---|---|---|---|---|
+| Exact orderable identity | EXAMPLE-PN-A | S1 | 2026-05-09 | confirmed |
+"""
+
 GOOD_SELECTION_MAP = """---
 schema_version: 1
 schema_kind: selection-map
@@ -228,7 +265,7 @@ def test_frozen_with_blockers_fails():
     assert "CR001" in _rules(r)
 
 
-def test_selected_not_frozen_no_blockers_warns():
+def test_selected_not_frozen_no_blockers_errors():
     text = """---
 schema_version: 1
 schema_kind: decision-record
@@ -244,13 +281,15 @@ body
     r = lint_record.lint_text(text)
     assert "CR002" in _rules(r)
     fm = [i for i in r.issues if i.rule == "CR002"][0]
-    assert fm.level == "warning"
+    assert fm.level == "error"
 
 
-def test_past_blocker_due_warns_on_non_frozen():
+def test_past_blocker_due_errors_on_selected_not_frozen():
     text = GOOD_DECISION.replace("due_date: 2099-01-01", "due_date: 2020-01-01")
     r = lint_record.lint_text(text)
     assert "CR004" in _rules(r)
+    cr004 = [i for i in r.issues if i.rule == "CR004"][0]
+    assert cr004.level == "error"
 
 
 def test_bad_evidence_status_in_candidate():
@@ -269,6 +308,67 @@ def test_stale_evidence_is_valid_enum_token():
     )
     r = lint_record.lint_text(text)
     assert "DR001" not in _rules(r)
+
+
+def test_frozen_happy_path_has_structural_body():
+    r = lint_record.lint_text(GOOD_FROZEN_DECISION)
+    assert not r.errors, f"unexpected errors: {[i.rule for i in r.errors]}"
+
+
+def test_frozen_with_external_validation_fails():
+    text = GOOD_FROZEN_DECISION.replace(
+        "external_validation_skills_needed: []",
+        "external_validation_skills_needed:\n  - skill: si-channel-budget\n    reason: close-si",
+    )
+    r = lint_record.lint_text(text)
+    assert "CR005" in _rules(r)
+
+
+def test_frozen_without_source_or_gate_body_fails():
+    text = """---
+schema_version: 1
+schema_kind: decision-record
+record_id: 20260510-empty-frozen
+project: test
+revision: 1
+status: frozen
+created_date: 2026-05-10
+freeze_blockers: []
+external_validation_skills_needed: []
+---
+
+# Empty body
+"""
+    r = lint_record.lint_text(text)
+    assert "CR006" in _rules(r)
+
+
+def test_body_blocked_gate_requires_frontmatter_blocker():
+    text = """---
+schema_version: 1
+schema_kind: decision-record
+record_id: 20260510-blocked-gate
+project: test
+revision: 1
+status: selected-not-frozen
+created_date: 2026-05-10
+freeze_blockers: []
+---
+
+## Hard Gate Screen
+
+| Gate | Status |
+|---|---|
+| Lifecycle / PCN / EOL | blocked |
+"""
+    r = lint_record.lint_text(text)
+    assert "CR007" in _rules(r)
+
+
+def test_confirmed_primary_requires_evidence_matrix_row():
+    text = GOOD_FROZEN_DECISION.replace("EXAMPLE-PN-A | S1", "OTHER-PN | S1")
+    r = lint_record.lint_text(text)
+    assert "CR008" in _rules(r)
 
 
 # ============================================================
@@ -481,6 +581,33 @@ freeze_blockers:
 """
     r = lint_record.lint_text(text)
     assert "BD002" not in _rules(r)
+
+
+def test_confirmed_evidence_with_blank_date_fails():
+    text = """---
+schema_version: 1
+schema_kind: decision-record
+record_id: 20260510-blank-date
+project: test
+revision: 1
+status: selected-not-frozen
+created_date: 2026-05-10
+freeze_blockers:
+  - id: fb-x
+    field: lifecycle
+    needed_evidence: pcn
+    owner: a
+    due_date: 2099-01-01
+---
+
+# Body
+
+| Field | Evidence date | Status |
+|---|---|---|
+| lifecycle |  | confirmed |
+"""
+    r = lint_record.lint_text(text)
+    assert "BD003" in _rules(r)
 
 
 # ============================================================

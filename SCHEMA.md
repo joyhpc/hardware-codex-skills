@@ -200,7 +200,7 @@ These are enforced exactly. Lint rejects any value outside the listed set.
 | `related_records[*].role` | `sidecar`, `source`, `derived`, `superseded` |
 | `related_records[*].kind` | any registered `schema_kind` |
 
-`stale-evidence` is added to evidence_status to mark `confirmed` rows whose `evidence_date` is older than `evidence_freshness_window_days`. The lint scanner downgrades them automatically when `--strict-aging` is set, or warns otherwise.
+`stale-evidence` is added to evidence_status to mark rows that the record author has reclassified after evidence freshness review. The lint scanner does not rewrite records; it warns on stale confirmed rows, or reports them as errors when `--strict-aging` is set.
 
 ## Cross-Record References
 
@@ -231,9 +231,9 @@ Lint rule **BD002** scans body evidence-matrix tables and compares the `Evidence
 
 - Default window: 60 days.
 - Settable per-record via frontmatter `evidence_freshness_window_days`.
-- Settable per-row by adding `Aging override: <days>` in the row's `Notes` cell.
 - Confirmed rows past the window emit warning by default.
-- `--strict-aging` flag promotes the warning to an error and writes `stale-evidence` into the row's status cell automatically.
+- `--strict-aging` flag promotes the warning to an error.
+- Lint never mutates body table statuses; changing `confirmed` to `stale-evidence` is an explicit author/reviewer action.
 
 Evidence dates are scanned only in tables whose header includes both `Status` and `Evidence date` columns.
 
@@ -263,8 +263,12 @@ Selected rules:
 | EN002 | error | `review_date` precedes `created_date` |
 | EN003 | error | `superseded_by` set but `status != superseded` (or vice versa) |
 | CR001 | error | `status: frozen` but `freeze_blockers` non-empty |
-| CR002 | warning | `status: selected-not-frozen` with empty `freeze_blockers` |
-| CR004 | warning | `freeze_blocker.due_date` in the past on a non-frozen record |
+| CR002 | error | `status: selected-not-frozen` with empty `freeze_blockers` |
+| CR004 | error/warning | `freeze_blocker.due_date` in the past; error for `selected-not-frozen`, warning for earlier non-frozen states |
+| CR005 | error | `status: frozen` with non-empty `external_validation_skills_needed` |
+| CR006 | error | `status: frozen` without minimum Source Inventory and passing gate evidence in body tables |
+| CR007 | error | Body gate table has unresolved statuses but frontmatter has no `freeze_blockers` |
+| CR008 | error | `primary_candidate.evidence_status: confirmed` without a matching dated Evidence Matrix row |
 | DR001 | error | `evidence_status` not in closed enum |
 | SM001 | error | `selection-map` missing `decision_record` reference |
 | SM010 | warning | Selection map heuristic recommends one, none referenced |
@@ -273,6 +277,7 @@ Selected rules:
 | PA003 | error | `status: exported` with non-empty `unresolved_source_conflicts` |
 | BD001 | error | Status cell uses value outside allowed enum union |
 | BD002 | warning | Evidence row date older than `evidence_freshness_window_days` |
+| BD003 | error | Confirmed evidence row has an empty or invalid `Evidence date` |
 
 ## Lint Output Formats
 
@@ -286,7 +291,7 @@ python tools/scripts/lint_record.py path/to/record.md --format json
 # Strict mode: warnings become errors
 python tools/scripts/lint_record.py path/to/record.md --strict
 
-# Strict aging: BD002 warnings become errors and rewrite stale rows
+# Strict aging: BD002 warnings become errors; records are not rewritten
 python tools/scripts/lint_record.py path/to/record.md --strict-aging
 
 # Stamp last_lint_pass on success
@@ -384,10 +389,10 @@ The closed loop:
 4. hwpm / meta-agent / dashboard     consume JSON, compute CPM, route tasks
 5. external skill (si, emif, ...)    runs validation, produces artifact
 6. Skill workflow updates body       evidence row goes confirmed
-7. lint_record.py                    re-validates; if CR001 passes, status -> frozen
+7. lint_record.py                    re-validates structure before status -> frozen
 8. build_blocker_dag.py rebuilds     downstream tools see updated graph
 ```
 
-Steps 2-4 and 7-8 require no LLM. The LLM is constrained to steps 1 and 6, where its strengths (synthesis, narrative, judgment under ambiguity) actually pay off. Routing, filtering, dependency tracking, and freeze gating are deterministic.
+Steps 2-4 and 7-8 require no LLM. The LLM is constrained to steps 1 and 6, where its strengths (synthesis, narrative, judgment under ambiguity) actually pay off. Routing, filtering, dependency tracking, and structural freeze checks are deterministic; engineering truth still comes from dated evidence and owner review.
 
 This is the architectural payoff: the schema turns each skill into an addressable node in a DAG, and the meta-agent becomes a graph walker rather than an LLM-in-the-loop traffic cop.

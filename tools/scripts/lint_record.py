@@ -291,6 +291,10 @@ def validate_decision_record(meta: dict, body: str, r: LintResult) -> None:
     _check_evidence_status_in_candidates(meta, r)
     _check_decision_status_consistency(meta, r)
     _check_blocker_due_dates(meta, r)
+    _check_frozen_external_validation(meta, r)
+    _check_frozen_body_readiness(meta, body, r)
+    _check_body_gate_blockers(meta, body, r)
+    _check_confirmed_primary_has_evidence(meta, body, r)
 
 
 def _check_evidence_status_in_candidates(meta: dict, r: LintResult) -> None:
@@ -322,9 +326,9 @@ def _check_decision_status_consistency(meta: dict, r: LintResult) -> None:
               f"status=frozen requires empty freeze_blockers; "
               f"{len(blockers)} blocker(s) present")
     if status == "selected-not-frozen" and not blockers:
-        r.add("warning", "CR002", "frontmatter:status",
-              "status=selected-not-frozen with no freeze_blockers — "
-              "consider promoting to frozen or adding blockers")
+        r.add("error", "CR002", "frontmatter:status",
+              "status=selected-not-frozen requires at least one freeze_blocker; "
+              "otherwise promote to frozen or use an earlier status")
 
 
 def _check_blocker_due_dates(meta: dict, r: LintResult) -> None:
@@ -340,9 +344,77 @@ def _check_blocker_due_dates(meta: dict, r: LintResult) -> None:
             continue
         due = _parse_iso_date(b.get("due_date"))
         if due and due < today:
-            r.add("warning", "CR004",
+            level = "error" if status == "selected-not-frozen" else "warning"
+            r.add(level, "CR004",
                   f"frontmatter:freeze_blockers[{i}].due_date",
                   f"due_date {due} is in the past")
+
+
+def _check_frozen_external_validation(meta: dict, r: LintResult) -> None:
+    if meta.get("status") != "frozen":
+        return
+    needs = meta.get("external_validation_skills_needed") or []
+    if needs:
+        r.add("error", "CR005", "frontmatter:external_validation_skills_needed",
+              "status=frozen requires external_validation_skills_needed to be empty")
+
+
+def _check_frozen_body_readiness(meta: dict, body: str, r: LintResult) -> None:
+    if meta.get("status") != "frozen":
+        return
+
+    if not _has_source_inventory_rows(body):
+        r.add("error", "CR006", "body:Source Inventory",
+              "status=frozen requires at least one Source Inventory data row")
+
+    gate_rows = _gate_status_rows(body)
+    if not gate_rows:
+        r.add("error", "CR006", "body:Hard Gate Screen",
+              "status=frozen requires a hard-gate or verification-gate table")
+        return
+
+    if not any(status == "pass" for _line, status in gate_rows):
+        r.add("error", "CR006", "body:Hard Gate Screen",
+              "status=frozen requires at least one gate row with status=pass")
+
+    for line, status in gate_rows:
+        if status in {"blocked", "TBD-evidence", "conflict", "stale-evidence"}:
+            r.add("error", "CR006", f"line:{line}",
+                  f"status=frozen cannot have open gate status '{status}' in body")
+
+
+def _check_body_gate_blockers(meta: dict, body: str, r: LintResult) -> None:
+    status = meta.get("status")
+    if status not in {"selected-not-frozen", "blocked", "frozen"}:
+        return
+    blockers = meta.get("freeze_blockers") or []
+    if blockers:
+        return
+    for line, gate_status in _gate_status_rows(body):
+        if gate_status in {"blocked", "TBD-evidence", "conflict", "stale-evidence"}:
+            r.add("error", "CR007", f"line:{line}",
+                  f"body gate status '{gate_status}' requires a matching "
+                  "freeze_blockers[] entry")
+            return
+
+
+def _check_confirmed_primary_has_evidence(meta: dict, body: str,
+                                          r: LintResult) -> None:
+    pri = meta.get("primary_candidate") or {}
+    if not isinstance(pri, dict):
+        return
+    if pri.get("evidence_status") != "confirmed":
+        return
+    pn = str(pri.get("pn") or "").strip()
+    if not pn:
+        r.add("error", "CR008", "frontmatter:primary_candidate.pn",
+              "confirmed primary_candidate requires pn")
+        return
+    if not _has_confirmed_evidence_for_candidate(body, pn):
+        r.add("error", "CR008", "body:Evidence Matrix",
+              "confirmed primary_candidate requires at least one Evidence Matrix "
+              "row for the PN with status=confirmed, Evidence source, and "
+              "valid Evidence date")
 
 
 # ============================================================
@@ -429,6 +501,7 @@ def validate_pin_assign(meta: dict, body: str, r: LintResult,
 
 TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 TABLE_SEP_RE = re.compile(r"^\s*\|[\s\-:|]+\|\s*$")
+HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s+(.*?)\s*$")
 
 
 def _split_row(row: str) -> list[str]:
@@ -457,11 +530,128 @@ def _iter_tables(body: str) -> Iterable[tuple[int, list[str], list[tuple[int, li
             i += 1
 
 
+def _iter_tables_with_context(
+    body: str,
+) -> Iterable[tuple[str, int, list[str], list[tuple[int, list[str]]]]]:
+    """Yield (latest_heading, start_line, header_cells, row tuples)."""
+    lines = body.splitlines()
+    i = 0
+    heading = ""
+    while i < len(lines):
+        hm = HEADING_RE.match(lines[i])
+        if hm:
+            heading = hm.group(1).strip()
+        if (TABLE_ROW_RE.match(lines[i])
+                and i + 1 < len(lines)
+                and TABLE_SEP_RE.match(lines[i + 1])):
+            header = _split_row(lines[i])
+            j = i + 2
+            rows: list[tuple[int, list[str]]] = []
+            while (j < len(lines)
+                   and TABLE_ROW_RE.match(lines[j])
+                   and not TABLE_SEP_RE.match(lines[j])):
+                rows.append((j + 1, _split_row(lines[j])))
+                j += 1
+            yield heading, i + 1, header, rows
+            i = j
+        else:
+            i += 1
+
+
 def _column_index(header: list[str], name: str) -> int | None:
     for idx, cell in enumerate(header):
         if cell.lower() == name.lower():
             return idx
     return None
+
+
+def _norm(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().lower())
+
+
+def _cell(cells: list[str], idx: int | None) -> str:
+    if idx is None or idx >= len(cells):
+        return ""
+    return cells[idx].strip()
+
+
+def _header_names(header: list[str]) -> set[str]:
+    return {_norm(h) for h in header}
+
+
+def _is_source_inventory_table(heading: str, header: list[str]) -> bool:
+    names = _header_names(header)
+    return (
+        "source inventory" in _norm(heading)
+        or {"source id", "trust level"}.issubset(names)
+    )
+
+
+def _has_source_inventory_rows(body: str) -> bool:
+    for heading, _hdr_line, header, rows in _iter_tables_with_context(body):
+        if not _is_source_inventory_table(heading, header):
+            continue
+        for _line_no, cells in rows:
+            if any(c.strip() for c in cells):
+                return True
+    return False
+
+
+def _is_gate_table(heading: str, header: list[str]) -> bool:
+    h = _norm(heading)
+    names = _header_names(header)
+    return (
+        "hard gate" in h
+        or "freeze checklist" in h
+        or "verification gate" in h
+        or {"gate", "status"}.issubset(names)
+    )
+
+
+def _gate_status_rows(body: str) -> list[tuple[int, str]]:
+    found: list[tuple[int, str]] = []
+    for heading, _hdr_line, header, rows in _iter_tables_with_context(body):
+        if not _is_gate_table(heading, header):
+            continue
+        status_idx = _column_index(header, "status")
+        if status_idx is None:
+            continue
+        for line_no, cells in rows:
+            status = _cell(cells, status_idx)
+            if status:
+                found.append((line_no, status))
+    return found
+
+
+def _is_evidence_matrix_table(heading: str, header: list[str]) -> bool:
+    names = _header_names(header)
+    return (
+        "evidence matrix" in _norm(heading)
+        or {"candidate", "evidence source", "evidence date", "status"}.issubset(names)
+    )
+
+
+def _has_confirmed_evidence_for_candidate(body: str, pn: str) -> bool:
+    needle = pn.lower()
+    for heading, _hdr_line, header, rows in _iter_tables_with_context(body):
+        if not _is_evidence_matrix_table(heading, header):
+            continue
+        cand_idx = _column_index(header, "candidate")
+        src_idx = _column_index(header, "evidence source")
+        date_idx = _column_index(header, "evidence date")
+        status_idx = _column_index(header, "status")
+        for _line_no, cells in rows:
+            candidate = _cell(cells, cand_idx).lower()
+            if needle not in candidate:
+                continue
+            if _cell(cells, status_idx) != "confirmed":
+                continue
+            if not _cell(cells, src_idx):
+                continue
+            if _parse_iso_date(_cell(cells, date_idx)) is None:
+                continue
+            return True
+    return False
 
 
 def scan_body_status_columns(body: str, r: LintResult) -> None:
@@ -477,6 +667,26 @@ def scan_body_status_columns(body: str, r: LintResult) -> None:
             if val and val not in ALL_BODY_STATUS_TOKENS:
                 r.add("error", "BD001", f"line:{line_no}",
                       f"status cell '{val}' not in any allowed enum")
+
+
+def scan_body_missing_evidence_dates(body: str, r: LintResult) -> None:
+    """BD003: confirmed evidence rows must carry an ISO Evidence date."""
+    for _hdr_line, header, rows in _iter_tables(body):
+        status_idx = _column_index(header, "status")
+        date_idx = _column_index(header, "evidence date")
+        if status_idx is None or date_idx is None:
+            continue
+        for line_no, cells in rows:
+            status = _cell(cells, status_idx)
+            if status != "confirmed":
+                continue
+            raw_date = _cell(cells, date_idx)
+            if not raw_date:
+                r.add("error", "BD003", f"line:{line_no}",
+                      "confirmed evidence row has empty Evidence date")
+            elif _parse_iso_date(raw_date) is None:
+                r.add("error", "BD003", f"line:{line_no}",
+                      f"confirmed evidence row has invalid Evidence date '{raw_date}'")
 
 
 def scan_body_evidence_aging(body: str, meta: dict, r: LintResult,
@@ -556,6 +766,7 @@ def lint_text(text: str, *, strict_aging: bool = False,
 
     # Body scanners (universal)
     scan_body_status_columns(body, r)
+    scan_body_missing_evidence_dates(body, r)
     scan_body_evidence_aging(body, meta, r, strict_aging=strict_aging)
 
     return r
