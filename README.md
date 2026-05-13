@@ -105,6 +105,10 @@ It does not parse datasheets, query suppliers, scrape PCNs, infer pin assignment
 The DAG builder does not compute critical paths. CPM belongs in `hwpm`; this repo only emits clean input data.
 It also intentionally does not run the full linter. Lint is the gate; the DAG builder is the reporter that preserves partial graph visibility from records with parseable envelopes.
 
+## AI Governance
+
+[`docs/ai-software-engineering-governance.md`](./docs/ai-software-engineering-governance.md) defines the governance model for treating model capability as an incompletely predictable compute unit inside runtime workflows. It covers responsibility, risk levels, lifecycle gates, evidence boundaries, tool side effects, runtime security, cost controls, degradation, and audit loops.
+
 ## Closed Loop
 
 ```text
