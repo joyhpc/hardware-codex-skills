@@ -25,6 +25,24 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from schema_lib import (  # noqa: E402
+    DECISION_RECORD,
+    DECISION_RECORD_ID_RE,
+    ISO_DATE_RE,
+    PIN_ASSIGN,
+    RELATED_RECORD_ROLES,
+    SELECTION_MAP,
+    SUPPORTED_KINDS,
+    SUPPORTED_SCHEMA_VERSIONS,
+    get_record_id,
+    parse_iso_date as _parse_iso_date,
+    split_frontmatter,
+)
+
 try:
     import yaml
 except ImportError:
@@ -33,16 +51,8 @@ except ImportError:
 
 
 # ============================================================
-# Schema constants (mirror SCHEMA.md)
+# Lint constants (mirror SCHEMA.md)
 # ============================================================
-
-SUPPORTED_SCHEMA_VERSIONS = {1}
-
-DECISION_RECORD = "decision-record"
-SELECTION_MAP = "selection-map"
-PIN_ASSIGN = "pin-assign-workbench"
-
-SUPPORTED_KINDS = {DECISION_RECORD, SELECTION_MAP, PIN_ASSIGN}
 
 # Status enums per kind
 STATUS_BY_KIND = {
@@ -69,15 +79,10 @@ ALL_BODY_STATUS_TOKENS = (
     | STATUS_BY_KIND[PIN_ASSIGN]
 )
 
-RELATED_RECORD_ROLES = {"sidecar", "source", "derived", "superseded"}
-
 UNIVERSAL_REQUIRED = (
     "schema_version", "record_id", "project", "revision",
     "status", "created_date",
 )
-
-DECISION_RECORD_ID_RE = re.compile(r"^\d{8}-[a-z0-9][a-z0-9-]*$")
-ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 DEFAULT_EVIDENCE_FRESHNESS_DAYS = 60
 
@@ -111,51 +116,6 @@ class LintResult:
 
     def add(self, level: str, rule: str, location: str, message: str) -> None:
         self.issues.append(LintIssue(level, rule, location, message))
-
-
-# ============================================================
-# Parsing
-# ============================================================
-
-FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n(.*)", re.DOTALL)
-
-
-def split_frontmatter(text: str) -> tuple[dict, str] | None:
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return None
-    try:
-        meta = yaml.safe_load(m.group(1))
-    except yaml.YAMLError:
-        return None
-    if not isinstance(meta, dict):
-        return None
-    return meta, m.group(2)
-
-
-def _parse_iso_date(value: object) -> dt.date | None:
-    if isinstance(value, dt.date):
-        return value
-    if isinstance(value, str) and ISO_DATE_RE.match(value):
-        try:
-            return dt.date.fromisoformat(value)
-        except ValueError:
-            return None
-    return None
-
-
-# ============================================================
-# Backward compatibility for record_id / decision_id
-# ============================================================
-
-def get_record_id(meta: dict) -> str | None:
-    """Universal accessor; legacy decision_id supported on decision-record kind."""
-    rid = meta.get("record_id")
-    if rid:
-        return rid
-    if meta.get("schema_kind", DECISION_RECORD) == DECISION_RECORD:
-        return meta.get("decision_id")
-    return None
 
 
 # ============================================================
@@ -231,6 +191,15 @@ def check_envelope_dates(meta: dict, r: LintResult) -> None:
         if _parse_iso_date(v) is None:
             r.add("error", "FM005", f"frontmatter:{k}",
                   f"{k}='{v}' must be ISO date YYYY-MM-DD")
+
+
+def check_evidence_freshness_window(meta: dict, r: LintResult) -> None:
+    if "evidence_freshness_window_days" not in meta:
+        return
+    window_days = meta.get("evidence_freshness_window_days")
+    if type(window_days) is not int or window_days <= 0:
+        r.add("error", "FM004", "frontmatter:evidence_freshness_window_days",
+              "evidence_freshness_window_days must be a positive integer")
 
 
 def check_envelope_consistency(meta: dict, r: LintResult) -> None:
@@ -751,6 +720,7 @@ def lint_text(text: str, *, strict_aging: bool = False,
     check_record_id_pattern(meta, r)
     check_kind_status_enum(meta, kind, r)
     check_envelope_dates(meta, r)
+    check_evidence_freshness_window(meta, r)
     check_envelope_consistency(meta, r)
     check_related_records(meta, r)
 
@@ -776,15 +746,31 @@ def lint_text(text: str, *, strict_aging: bool = False,
 # Stamp on success
 # ============================================================
 
+def _detect_newline(text: str) -> str:
+    crlf = text.count("\r\n")
+    lf = text.count("\n") - crlf
+    return "\r\n" if crlf > lf else "\n"
+
+
+def _normalize_newlines(text: str, newline: str) -> str:
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    if newline != "\n":
+        normalized = normalized.replace("\n", newline)
+    return normalized
+
+
 def stamp_lint_pass(path: Path) -> None:
-    text = path.read_text(encoding="utf-8")
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        text = f.read()
+    newline = _detect_newline(text)
     parsed = split_frontmatter(text)
     if parsed is None:
         return
     meta, body = parsed
     meta["last_lint_pass"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     new_fm = yaml.safe_dump(meta, sort_keys=False, allow_unicode=True)
-    path.write_text(f"---\n{new_fm}---\n{body}", encoding="utf-8")
+    new_text = _normalize_newlines(f"---\n{new_fm}---\n{body}", newline)
+    path.write_text(new_text, encoding="utf-8", newline="")
 
 
 # ============================================================
@@ -865,7 +851,7 @@ def main(argv: list[str] | None = None) -> int:
             file_results.append((path, r, False))
             continue
 
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8-sig")
         result = lint_text(
             text,
             strict_aging=args.strict_aging,

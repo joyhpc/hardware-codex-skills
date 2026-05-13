@@ -61,6 +61,8 @@ skill instructions
            -> hwpm / meta-agent / dashboard
 ```
 
+![hardware-codex-skills current architecture](docs/assets/current-architecture.png)
+
 ### Layer 1: Skills
 
 Skills define the workflow and evidence discipline. They should not include project facts, supplier claims, copied datasheet content, credentials, or real part-number decisions.
@@ -101,6 +103,7 @@ It does not parse datasheets, query suppliers, scrape PCNs, infer pin assignment
 [`tools/scripts/build_blocker_dag.py`](./tools/scripts/build_blocker_dag.py) walks record directories and emits a graph of records, blockers, supersession links, and sidecar/source/derived links.
 
 The DAG builder does not compute critical paths. CPM belongs in `hwpm`; this repo only emits clean input data.
+It also intentionally does not run the full linter. Lint is the gate; the DAG builder is the reporter that preserves partial graph visibility from records with parseable envelopes.
 
 ## Closed Loop
 
@@ -136,11 +139,17 @@ Until then, prefer explicit invocation such as `Use critical-component-selection
 ```text
 hardware-codex-skills/
 |-- README.md
+|-- requirements-dev.txt
 |-- SCHEMA.md
+|-- docs/
+|   `-- assets/
+|       `-- current-architecture.png
 |-- tools/
 |   |-- scripts/
+|   |   |-- build_blocker_dag.py
+|   |   |-- doctor.py
 |   |   |-- lint_record.py
-|   |   `-- build_blocker_dag.py
+|   |   `-- schema_lib.py
 |   `-- tests/
 |       |-- test_lint_record.py
 |       `-- test_build_dag.py
@@ -177,11 +186,21 @@ hardware-codex-skills/
     |   |-- source-policy.md
     |   |-- validation-checklist.md
     |   `-- workbook-pattern.md
-    `-- scripts/
-        `-- format_pin_workbook.py
+    |-- scripts/
+    |   `-- format_pin_workbook.py
+    `-- tests/
+        `-- test_format_pin_workbook.py
 ```
 
 `critical-component-selection/scripts/lint_decision_record.py` is an old-path compatibility shim. The canonical linter is `tools/scripts/lint_record.py`.
+
+## Requirements
+
+Use Python 3.11 or newer. Install development dependencies before running tests or workbook formatting:
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 ## Validation Commands
 
@@ -206,6 +225,13 @@ Run tests:
 ```bash
 python tools/tests/test_lint_record.py
 python tools/tests/test_build_dag.py
+python pin-assign-workbench/tests/test_format_pin_workbook.py
+```
+
+Run the local validation loop:
+
+```bash
+python tools/scripts/doctor.py
 ```
 
 ## Boundaries
@@ -230,7 +256,7 @@ Project facts belong in project repositories. Component knowledge belongs in the
 Near-term development should make the current contract more useful before adding new kinds:
 
 1. Keep documentation synchronized with real files and actual tool behavior.
-2. Extract shared schema parsing into `tools/scripts/schema_lib.py`.
+2. Keep `tools/scripts/schema_lib.py` focused on shared envelope parsing, not lint policy.
 3. Add reference resolution and cycle detection for cross-record graphs.
 4. Dogfood `critical-component-selection` on real decisions and feed friction back into `decision-playbook.md`.
 5. Decide whether `pin-assign-workbench` metadata should remain a Markdown sidecar or move into workbook `_Metadata`.

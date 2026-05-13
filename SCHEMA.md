@@ -97,7 +97,7 @@ Optional universal fields:
 | `supersedes` | Prior record id replaced by this record. |
 | `superseded_by` | Later record id that replaces this record. Required when `status: superseded`. |
 | `related_records` | Cross-record graph links. |
-| `evidence_freshness_window_days` | Record-level evidence aging window. Default is 60 days. |
+| `evidence_freshness_window_days` | Record-level evidence aging window. Must be a positive integer. Default is 60 days. |
 | `last_lint_pass` | Optional audit stamp written by `--stamp` on a successful lint run. |
 
 ## Schema Kinds
@@ -279,6 +279,7 @@ Selected rules:
 | `FM001` | error | Required envelope field missing. |
 | `FM002` | error | `record_id` does not match `YYYYMMDD-<slug>`. |
 | `FM003` | error | `status` is outside the enum for this kind. |
+| `FM004` | error | `evidence_freshness_window_days` is not a positive integer. |
 | `FM005` | error | Date field is not ISO `YYYY-MM-DD`. |
 | `FM010` | warning | `schema_kind` missing; defaults to `decision-record`. |
 | `FM997` | error | Unknown `schema_kind`. |

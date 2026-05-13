@@ -8,6 +8,10 @@ Output is consumed by hwpm CPM, dashboards, and the meta-agent. CPM-style
 critical path computation belongs in hwpm; this builder produces the input
 data only.
 
+This builder intentionally does not call lint_text(); lint is a gate, while the
+DAG builder is a reporter that should preserve partial graph visibility when a
+record has a parseable envelope.
+
 Exit codes:
     0  graph built; warnings allowed
     1  one or more records failed to parse
@@ -24,10 +28,10 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Iterable
 
-# Reuse the lint module's parser + constants
+# Reuse the shared schema envelope parser + constants.
 THIS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(THIS_DIR))
-import lint_record  # noqa: E402
+import schema_lib  # noqa: E402
 
 
 @dataclass
@@ -86,21 +90,21 @@ def parse_record(path: Path) -> tuple[Milestone, list[Edge]] | str:
     except OSError as e:
         return f"read error: {e}"
 
-    parsed = lint_record.split_frontmatter(text)
+    parsed = schema_lib.split_frontmatter(text)
     if parsed is None:
         return "no valid frontmatter"
     meta, _body = parsed
 
     # Skip records with unsupported schema_version
     sv = meta.get("schema_version")
-    if sv not in lint_record.SUPPORTED_SCHEMA_VERSIONS:
+    if sv not in schema_lib.SUPPORTED_SCHEMA_VERSIONS:
         return f"unsupported schema_version: {sv}"
 
-    rid = lint_record.get_record_id(meta)
+    rid = schema_lib.get_record_id(meta)
     if not rid:
         return "missing record_id"
 
-    kind = meta.get("schema_kind", lint_record.DECISION_RECORD)
+    kind = meta.get("schema_kind", schema_lib.DECISION_RECORD)
 
     milestone = Milestone(
         id=rid,
@@ -116,7 +120,7 @@ def parse_record(path: Path) -> tuple[Milestone, list[Edge]] | str:
     )
 
     # Tasks (freeze blockers) — only meaningful on decision-record
-    if kind == lint_record.DECISION_RECORD:
+    if kind == schema_lib.DECISION_RECORD:
         for b in (meta.get("freeze_blockers") or []):
             if isinstance(b, dict):
                 milestone.tasks.append({

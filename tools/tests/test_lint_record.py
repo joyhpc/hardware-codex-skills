@@ -12,7 +12,9 @@ Or with pytest:
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -143,6 +145,12 @@ def test_decision_record_happy_path():
     assert not r.errors, f"unexpected errors: {[i.rule for i in r.errors]}"
 
 
+def test_utf8_bom_frontmatter_is_accepted():
+    r = lint_record.lint_text("\ufeff" + GOOD_DECISION)
+    assert "FM000" not in _rules(r)
+    assert not r.errors, f"unexpected errors: {[i.rule for i in r.errors]}"
+
+
 def test_selection_map_happy_path():
     r = lint_record.lint_text(GOOD_SELECTION_MAP)
     assert not r.errors, f"unexpected errors: {[i.rule for i in r.errors]}"
@@ -199,6 +207,15 @@ def test_bad_date_format():
                                   "created_date: 05/10/2026")
     r = lint_record.lint_text(text)
     assert "FM005" in _rules(r)
+
+
+def test_invalid_evidence_freshness_window_errors():
+    text = GOOD_DECISION.replace(
+        "created_date: 2026-05-10",
+        "created_date: 2026-05-10\nevidence_freshness_window_days: 0",
+    )
+    r = lint_record.lint_text(text)
+    assert "FM004" in _rules(r)
 
 
 def test_review_before_created_fails():
@@ -632,6 +649,35 @@ def test_json_output_shape():
     assert payload["files"][0]["schema_kind"] == "decision-record"
     assert "issues" in payload["files"][0]
     assert payload["exit_code"] == rc
+
+
+def test_stamp_preserves_crlf_line_endings():
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "record.md"
+        path.write_text(
+            GOOD_DECISION.replace("\n", "\r\n"),
+            encoding="utf-8",
+            newline="",
+        )
+        rc = lint_record.main([str(path), "--stamp"])
+        assert rc == 0
+        text = path.read_bytes().decode("utf-8")
+        assert "\r\n" in text
+        assert "\n" not in text.replace("\r\n", "")
+        assert "last_lint_pass:" in text
+
+
+def test_legacy_lint_decision_record_shim_runs():
+    shim = REPO_ROOT / "critical-component-selection" / "scripts" / \
+           "lint_decision_record.py"
+    example = REPO_ROOT / "critical-component-selection" / "examples" / \
+              "example-decision-record.md"
+    result = subprocess.run(
+        [sys.executable, str(shim), str(example)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
 
 
 # ============================================================
