@@ -10,6 +10,10 @@ The repository packages reusable hardware-engineering workflows for Codex. It
 does not hold project facts. Its job is to turn ambiguous, evidence-heavy work
 into reviewable artifacts with stable machine-readable envelopes.
 
+The optional `web/` layer is a local convenience adapter over the same
+deterministic tools. It is not a separate source of truth and should not add
+hardware decision logic.
+
 The core loop is:
 
 ```text
@@ -35,6 +39,7 @@ Use this precedence order when maintaining the repository:
 | How is frontmatter parsed and which schema kinds exist? | `tools/scripts/schema_lib.py` |
 | What graph edges and JSON fields are emitted? | `tools/scripts/build_blocker_dag.py` |
 | What does the pin workbook formatter inspect or generate? | `pin-assign-workbench/scripts/format_pin_workbook.py` |
+| How does the optional local web UI call repository tools? | `web/bridge.py` and `web/app.py` |
 | What should humans write in records? | `SCHEMA.md` plus the relevant skill template |
 | What is the repo-level orientation? | `README.md` and this document |
 
@@ -131,6 +136,20 @@ and checker for existing workbooks. It:
 It does not infer pin assignments, choose topologies, resolve source conflicts,
 or inspect the Markdown sidecar.
 
+### 6. Optional Local Web Adapter
+
+`web/` exposes the repository tools through a local FastAPI app and static page.
+It delegates core behavior to the existing CLI scripts:
+
+- record lint through `tools/scripts/lint_record.py`
+- DAG output through `tools/scripts/build_blocker_dag.py`
+- workbook formatting through `pin-assign-workbench/scripts/format_pin_workbook.py`
+- full local validation through `tools/scripts/doctor.py`
+
+The web layer owns upload handling, temporary files, subprocess execution, and
+response shaping only. It must not duplicate schema rules or make engineering
+decisions that belong in skills or deterministic scripts.
+
 ## Data Flow
 
 ```text
@@ -181,6 +200,7 @@ The doctor script runs:
 - linter tests
 - DAG builder tests
 - pin workbook formatter tests
+- local web adapter smoke tests
 - example record lint
 - example DAG summary
 
@@ -200,6 +220,8 @@ project use. A mature addition should include:
 - tests for scripts and record examples
 - `SCHEMA.md` updates for any new `schema_kind`, fields, statuses, or rules
 - `docs/architecture.md` and `README.md` updates when architecture changes
+- `web/bridge.py` and `web/smoke_test.py` updates when exposing new CLI behavior
+  through the optional local web adapter
 
 Do not add deterministic scripts that make engineering judgments, scrape
 suppliers, query private systems, or infer hardware decisions. Scripts in this

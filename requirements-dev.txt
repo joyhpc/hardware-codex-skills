@@ -1,3 +1,4 @@
+-r web/requirements.txt
 pyyaml
 openpyxl
 pytest
