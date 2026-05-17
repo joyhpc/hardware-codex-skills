@@ -25,6 +25,10 @@ CHECKS = [
         [sys.executable, "pin-assign-workbench/tests/test_format_pin_workbook.py"],
     ),
     (
+        "local web adapter smoke test",
+        [sys.executable, "web/smoke_test.py"],
+    ),
+    (
         "example record lint",
         [
             sys.executable,

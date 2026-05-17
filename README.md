@@ -1,6 +1,6 @@
 # hardware-codex-skills
 
-`hardware-codex-skills` 是一个面向硬件工程交付的 Codex skill 仓库。它不是前端应用、后端服务或数据库项目，也不保存真实项目资料；它保存的是可复用的工作流说明、Markdown 记录 Schema、模板、示例和本地 Python 工具。
+`hardware-codex-skills` 是一个面向硬件工程交付的 Codex skill 仓库。它不是业务前端、常驻后端服务或数据库项目，也不保存真实项目资料；它保存的是可复用的工作流说明、Markdown 记录 Schema、模板、示例、本地 Python 工具，以及一个可选的本地 Web 适配层。
 
 新手可以先记住一句话：这个仓库帮助 Codex 把“证据很重的硬件决策”整理成可审查的 Markdown 记录或 Excel 工作簿，再用确定性脚本检查结构并导出依赖图。
 
@@ -12,7 +12,8 @@
 |---|---|
 | [README.md](./README.md) | 项目入口文档，帮助第一次接触项目的人理解目录、架构、数据流和核心概念。 |
 | [SCHEMA.md](./SCHEMA.md) | 记录格式的主规范，定义 `schema_kind`、frontmatter 字段、状态枚举、lint 规则和 DAG 输出格式。 |
-| [requirements-dev.txt](./requirements-dev.txt) | 本地开发和测试依赖，目前主要包含 `pyyaml`、`openpyxl` 和 `pytest`。 |
+| [requirements-dev.txt](./requirements-dev.txt) | 本地开发和测试依赖，包含核心脚本、测试和可选 Web 适配层所需依赖。 |
+| [web](./web) | 可选本地 Web 适配层，把 lint、DAG、doctor 和管脚工作簿格式化包装成浏览器入口；核心行为仍委托给仓库内确定性 CLI。 |
 | [docs/architecture.md](./docs/architecture.md) | 架构说明文档，解释 source of truth、分层、数据流和扩展规则。 |
 | [docs/ai-software-engineering-governance.md](./docs/ai-software-engineering-governance.md) | AI 工程治理说明，描述责任、风险、证据、工具权限和审计闭环。 |
 | [docs/assets](./docs/assets) | README 和文档使用的架构图、数据流图与概念说明图。 |
@@ -29,7 +30,7 @@
 | [tools/scripts/schema_lib.py](./tools/scripts/schema_lib.py) | 共享 Schema 解析模块，负责解析 YAML frontmatter、日期、record id 和 Schema 常量。 |
 | [tools/scripts/lint_record.py](./tools/scripts/lint_record.py) | 仓库级记录校验入口，负责校验 frontmatter、状态枚举、正文表格、证据日期和冻结规则。 |
 | [tools/scripts/build_blocker_dag.py](./tools/scripts/build_blocker_dag.py) | DAG 构建入口，读取记录 frontmatter 并输出 milestones、freeze blockers、related records 和 supersession edges。 |
-| [tools/scripts/doctor.py](./tools/scripts/doctor.py) | 本地总验证入口，串行运行测试、示例记录 lint 和示例 DAG summary。 |
+| [tools/scripts/doctor.py](./tools/scripts/doctor.py) | 本地总验证入口，串行运行脚本测试、Web smoke、示例记录 lint 和示例 DAG summary。 |
 | [tools/tests](./tools/tests) | `lint_record.py` 和 `build_blocker_dag.py` 的核心测试目录。 |
 
 入口怎么找：
@@ -40,10 +41,11 @@
 - 想单独校验记录，入口是 [tools/scripts/lint_record.py](./tools/scripts/lint_record.py)。
 - 想从记录生成依赖图，入口是 [tools/scripts/build_blocker_dag.py](./tools/scripts/build_blocker_dag.py)。
 - 想格式化管脚工作簿，入口是 [pin-assign-workbench/scripts/format_pin_workbook.py](./pin-assign-workbench/scripts/format_pin_workbook.py)。
+- 想使用浏览器里的本地便捷入口，先运行 `python web/run.py`。
 
 ## 总体架构图
 
-这张图展示仓库内真实存在的主要部分：两个 Codex skills、共享 Schema、示例/模板、本地校验工具、DAG 工具和 Excel 格式化工具。仓库内没有前端页面、后端 API、数据库或常驻服务。
+这张图展示仓库内真实存在的主要部分：两个 Codex skills、共享 Schema、示例/模板、本地校验工具、DAG 工具、Excel 格式化工具和可选本地 Web 适配层。仓库内没有业务数据库或需要部署的常驻服务。
 
 ![总体架构图](./docs/assets/architecture-overview.png)
 
@@ -126,6 +128,12 @@ pip install -r requirements-dev.txt
 python tools/scripts/doctor.py
 ```
 
+运行可选本地 Web 界面：
+
+```bash
+python web/run.py
+```
+
 校验一个或多个记录：
 
 ```bash
@@ -156,6 +164,7 @@ python pin-assign-workbench/scripts/format_pin_workbook.py input.xlsx output.xls
 - Schema 和模板
 - 虚构示例
 - 确定性的 lint、DAG 和 workbook 格式化工具
+- 只包装本地工具的可选 Web 适配层
 
 这个仓库不应该保存：
 

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>hardware-codex-skills</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>hardware-codex-skills</h1>
+        <p id="repoRoot">Loading repo...</p>
+      </div>
+      <button id="runDoctor" class="secondary" type="button">Run doctor</button>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Record lint</h2>
+          <button id="runLint" type="button">Run</button>
+        </div>
+        <label>
+          Markdown files
+          <input id="lintFiles" type="file" multiple accept=".md,text/markdown,text/plain" />
+        </label>
+        <label>
+          Pasted record
+          <textarea id="recordText" spellcheck="false"></textarea>
+        </label>
+        <label>
+          Server paths
+          <textarea id="lintPaths" class="short" spellcheck="false"></textarea>
+        </label>
+        <div class="checks">
+          <label><input id="strict" type="checkbox" /> Strict</label>
+          <label><input id="strictAging" type="checkbox" /> Strict aging</label>
+          <label><input id="checkPaths" type="checkbox" /> Check paths</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>DAG builder</h2>
+          <button id="runDag" type="button">Run</button>
+        </div>
+        <label>
+          Markdown files
+          <input id="dagFiles" type="file" multiple accept=".md,text/markdown,text/plain" />
+        </label>
+        <label>
+          Server paths
+          <textarea id="dagPaths" class="short" spellcheck="false"></textarea>
+        </label>
+        <div class="inline">
+          <label>
+            Format
+            <select id="dagFormat">
+              <option value="json">JSON</option>
+              <option value="summary">Summary</option>
+              <option value="mermaid">Mermaid</option>
+            </select>
+          </label>
+          <label><input id="useExamples" type="checkbox" /> Examples</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Pin workbook</h2>
+          <button id="runWorkbook" type="button">Format</button>
+        </div>
+        <label>
+          Workbook
+          <input id="workbookFile" type="file" accept=".xlsx" />
+        </label>
+        <label>
+          Server path
+          <input id="workbookPath" type="text" spellcheck="false" />
+        </label>
+        <div class="grid-3">
+          <label>
+            Net columns
+            <input id="netColumns" type="text" placeholder="B,D" />
+          </label>
+          <label>
+            Pin columns
+            <input id="pinColumns" type="text" placeholder="A,C" />
+          </label>
+          <label>
+            Skip sheets
+            <input id="skipSheets" type="text" />
+          </label>
+        </div>
+      </section>
+
+      <section class="results">
+        <div class="panel-head">
+          <h2>Result</h2>
+          <button id="clearOutput" class="secondary" type="button">Clear</button>
+        </div>
+        <div id="statusLine" class="status idle">Idle</div>
+        <pre id="output"></pre>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
