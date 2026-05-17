@@ -73,7 +73,7 @@ Search user-provided files and local knowledge bases first. Browse only for miss
 - FPGA/SoC symbol-order pin/net table.
 - Peripheral package pin/net table.
 - Off-page connector lists grouped by byte lane, control group, local-only, and FPGA-only signals.
-- Review workbook with `Sources`, `Assumptions`, `Checks`, and `Change_Log`.
+- Review workbook with `Sources`, `Checks`, generated `Mechanical_Checks`, `Review_Notes`, and `Change_Log`.
 - Markdown sidecar record with `schema_kind: pin-assign-workbench` for the workbook when downstream agents need routeable metadata.
 - Short explanation suitable for FAE, schematic review, and layout handoff.
 

@@ -44,11 +44,11 @@ State how this map helps the next selection step. Tie it to evidence navigation,
 
 ## Source Map
 
-| Source ID | Source type | Title | Date | Path / URL | Trust level | Candidate route | Supports | Status |
+| Source ID | Source type | Title | Date | Path / URL | Trust level | Candidate route | Supports | Map state |
 |---|---|---|---|---|---|---|---|---|
 | S1 |  |  |  |  | primary |  |  | active |
 
-> `Status` here uses `active`, `superseded`, `rejected`, or `stale`. (selection-map-row status, not the envelope status.)
+> `Map state` may use local workflow values such as `active`, `superseded`, `rejected`, or `stale`. Do not name this column `Status`; the repo linter reserves exact `Status` columns for the closed schema vocabularies in `SCHEMA.md`.
 
 ## Candidate Funnel
 
@@ -79,11 +79,11 @@ State how this map helps the next selection step. Tie it to evidence navigation,
 
 ## Evidence Acquisition Plan
 
-| Evidence gap | Best channel | Who asks | Question | Required answer format | Status |
+| Evidence gap | Best channel | Who asks | Question | Required answer format | Acquisition state |
 |---|---|---|---|---|---|
 |  |  |  |  |  | to-ask |
 
-> Acquisition status uses `to-ask`, `asked`, `answered`, `stale`, `blocked`, or `N-A`.
+> `Acquisition state` may use `to-ask`, `asked`, `answered`, `stale`, `blocked`, or `N-A`. Do not name this column `Status` unless every value is in the linter's closed `Status` vocabulary.
 
 ## Tool Validation Map
 

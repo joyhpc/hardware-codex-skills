@@ -93,12 +93,16 @@ Optional universal fields:
 | Field | Meaning |
 |---|---|
 | `review_date` | Next planned review date. Must not precede `created_date`. |
+| `freeze_target_date` | Optional target date for freeze planning. Must be ISO `YYYY-MM-DD` when present. |
 | `maintainer` | Record owner or maintainer. |
 | `supersedes` | Prior record id replaced by this record. |
 | `superseded_by` | Later record id that replaces this record. Required when `status: superseded`. |
 | `related_records` | Cross-record graph links. |
 | `evidence_freshness_window_days` | Record-level evidence aging window. Must be a positive integer. Default is 60 days. |
 | `last_lint_pass` | Optional audit stamp written by `--stamp` on a successful lint run. |
+
+The linter tolerates legacy `decision_id` as a fallback record id for
+`decision-record` only. New records should always use `record_id`.
 
 ## Schema Kinds
 
@@ -165,13 +169,16 @@ open_evidence_count: 3
 tool_validation_open_count: 2
 ```
 
-Selection map heuristic:
+Linter selection-map heuristic:
 
 - expected when `len(freeze_blockers) >= 3`
 - expected when `len(backup_candidates) >= 3`
-- expected when body source inventory has 10 or more rows
 
 Lint warning `SM010` fires when the heuristic recommends a map but no `selection-map` related record is referenced.
+
+The skill may recommend a map for broader human workflow reasons, such as many
+candidate routes, many source IDs, supplier message threads, or validation
+paths. Those broader criteria are guidance, not current linter logic.
 
 ### `pin-assign-workbench`
 
@@ -218,6 +225,12 @@ Lint rejects values outside these enums.
 | `related_records[*].kind` | any registered `schema_kind` |
 
 `stale-evidence` marks rows the author or reviewer has reclassified after evidence freshness review. Lint does not rewrite rows; it warns on old confirmed rows, or reports them as errors when `--strict-aging` is set.
+
+Body table rule: any Markdown table column named exactly `Status`
+(case-insensitive) is scanned by rule `BD001` and must use a value from the
+allowed union above. If a template needs a local workflow state that is not in
+the union, use a different column name such as `Map state` or
+`Acquisition state`.
 
 ## Cross-Record References
 
@@ -379,7 +392,9 @@ JSON shape:
   "schema_version": 1,
   "kind": "blocker-dag",
   "generated_at": "2026-05-10T14:32:00+08:00",
-  "scope": "hardware-projects/prj/mainboard-r3/decisions",
+  "scope": [
+    "hardware-projects/prj/mainboard-r3/decisions"
+  ],
   "milestones": [
     {
       "id": "20260510-mainboard-r3-lpddr5-x16",

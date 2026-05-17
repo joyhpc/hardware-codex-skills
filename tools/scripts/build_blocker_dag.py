@@ -119,7 +119,7 @@ def parse_record(path: Path) -> tuple[Milestone, list[Edge]] | str:
         path=str(path),
     )
 
-    # Tasks (freeze blockers) — only meaningful on decision-record
+    # Tasks (freeze blockers) are only meaningful on decision-record.
     if kind == schema_lib.DECISION_RECORD:
         for b in (meta.get("freeze_blockers") or []):
             if isinstance(b, dict):

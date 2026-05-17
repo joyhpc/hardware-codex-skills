@@ -43,7 +43,7 @@ Help the next selection step by preserving:
 
 ## Source Map
 
-| Source ID | Source type | Title | Date | Path | Trust level | Candidate route | Supports | Status |
+| Source ID | Source type | Title | Date | Path | Trust level | Candidate route | Supports | Map state |
 |---|---|---|---|---|---|---|---|---|
 | S1 | datasheet | example-corp ds 1.4 | 2026-04-15 | evidence/lpddr5/example-corp-ds-1.4.pdf | primary | example-corp | EXAMPLE-LPDDR5-X16-A | active |
 | S2 | vendor-email | example-corp lifecycle | 2026-04-22 | evidence/lpddr5/email-2026-04-22.eml | supplier | example-corp | lifecycle-claim | active |

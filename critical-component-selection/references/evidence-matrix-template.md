@@ -9,10 +9,10 @@ Allowed `Status` values:
 - `confirmed`: source exists and matches the requirement.
 - `TBD-evidence`: no usable source yet.
 - `conflict`: sources disagree or evidence contradicts the requirement.
-- `stale-evidence`: source once supported the row, but is older than the decision record's `evidence_stale_after_days` window or has been superseded.
+- `stale-evidence`: source once supported the row, but is older than the decision record's `evidence_freshness_window_days` window or has been superseded.
 - `N-A`: not applicable to this field, with a reason.
 
-Every non-`N-A` row must include `Evidence date`. If the decision owner has not set `evidence_stale_after_days`, keep freshness as `TBD-evidence` for facts that can change materially, such as price, stock, lead time, PCN/EOL state, lifecycle, and tool-version support.
+Every `confirmed` row must include `Evidence date`; lint rule **BD003** enforces this. If the decision owner has not set `evidence_freshness_window_days`, use the schema default of 60 days and keep freshness as `TBD-evidence` for facts that can change materially, such as price, stock, lead time, PCN/EOL state, lifecycle, and tool-version support.
 
 | Field | Candidate | Requirement | Claimed value | Evidence source | Evidence date | Status | Notes |
 |---|---|---|---|---|---|---|---|

@@ -41,6 +41,6 @@ Run this before delivery.
 
 ## Delivery
 
-- Workbook includes `Sources`, `Checks`, `Review_Notes`, and `Change_Log`.
+- Workbook includes `Sources`, `Checks`, generated `Mechanical_Checks`, `Review_Notes`, and `Change_Log`.
 - Copy/paste helper files are generated when requested.
 - Final response states what was generated, what was validated, and what still needs tool/FAE/layout confirmation.

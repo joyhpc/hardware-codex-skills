@@ -61,14 +61,15 @@ Pin/net assignment between the FPGA selected in `20260420-mainboard-r3-fpga` and
 
 The .xlsx contains the following sheets, in order:
 
-1. `Source_Inventory` — mirrors the table above, plus access dates and digests.
+1. `Sources` — mirrors the table above, plus access dates and digests.
 2. `Raw_Pinout` — vendor-original pinout for FPGA package XYZ.
-3. `Raw_Ballout` — vendor-original ballout for LPDDR5 200-FBGA.
-4. `Placement_Rules` — byte-lane swap policy, address/control group rules.
+3. `Placement_Rules` — byte-lane swap policy, address/control group rules.
+4. `Package_Ballout` — vendor-original ballout for LPDDR5 200-FBGA.
 5. `Schematic_Order` — rows ordered to match the OrCAD symbol order, not vendor datasheet order.
-6. `Final_Pin_Net` — canonical pin/net assignment.
-7. `Mechanical_Checks` — duplicate net review, blank pin/net mismatches.
-8. `Change_Log` — all edits since `created_date` with reason and source.
+6. `Pin_Net_Output` — canonical pin/net assignment.
+7. `Checks` — manual review checks, source conflicts, and owner notes.
+8. `Mechanical_Checks` — generated duplicate net review, duplicate pin review, source gaps, and blank pin/net mismatches.
+9. `Change_Log` — all edits since `created_date` with reason and source.
 
 ## Mechanical Checks
 
